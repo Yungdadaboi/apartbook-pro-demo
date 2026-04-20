@@ -1,0 +1,1726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<title>ApartBook Pro</title>
+<meta name="theme-color" content="#7c3aed"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="ApartBook Pro"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:#08080f;color:#e2e8f0;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+input,select,textarea,button{font-family:inherit;font-size:inherit}
+input[type=date]::-webkit-calendar-picker-indicator,
+input[type=time]::-webkit-calendar-picker-indicator{filter:invert(.6)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:#2a2a3d;border-radius:3px}
+
+/* ── MODE COLORS ── */
+/* Property: purple #7c3aed */
+/* Transport: sky #0ea5e9  */
+:root{
+  --mode-clr:#7c3aed;
+  --mode-bg:#1a1040;
+  --mode-brd:rgba(124,58,237,.4);
+}
+body.transport-mode{
+  --mode-clr:#0ea5e9;
+  --mode-bg:#0d1f36;
+  --mode-brd:rgba(14,165,233,.4);
+}
+
+/* ── LAYOUT ── */
+.hdr{background:#0c0c18;border-bottom:1px solid #1e1e2e;position:sticky;top:0;z-index:100}
+.hdr-top{display:flex;align-items:center;padding:0 10px;height:50px;gap:7px;border-bottom:1px solid #1e1e2e}
+.hdr-tabs{display:flex;align-items:center;overflow-x:auto;padding:0 6px;height:38px;gap:1px;scrollbar-width:none}
+.hdr-tabs::-webkit-scrollbar{display:none}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:7px 10px;font-size:11px;cursor:pointer;color:#64748b;white-space:nowrap;flex-shrink:0;height:100%;transition:color .15s}
+.tab-btn.active{border-bottom-color:var(--mode-clr);color:var(--mode-clr);font-weight:600}
+.tab-btn:hover{color:#e2e8f0}
+.mode-toggle{display:flex;background:#111122;border:1px solid #2a2a3d;border-radius:8px;overflow:hidden;flex-shrink:0}
+.mode-btn{padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:none;color:#64748b;transition:.2s;white-space:nowrap}
+.mode-btn.active-prop{background:#1a1040;color:#9d65f5}
+.mode-btn.active-trans{background:#0d1f36;color:#38bdf8}
+.main{padding:14px 12px;max-width:980px;margin:0 auto}
+.pg-title{font-size:17px;font-weight:600;margin-bottom:14px}
+
+/* ── CARDS ── */
+.card{background:#0f0f1c;border:1px solid #1e1e2e;border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.card-title{font-size:14px;font-weight:600;margin-bottom:12px;color:#e2e8f0}
+.card.prop-accent{border-color:rgba(124,58,237,.35)}
+.card.trans-accent{border-color:rgba(14,165,233,.35)}
+
+/* ── STATS ── */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+.stat{background:#0f0f1c;border:1px solid #1e1e2e;border-radius:12px;padding:12px 14px}
+.stat-l{font-size:10px;color:#64748b;margin-bottom:3px}
+.stat-v{font-size:20px;font-weight:700}
+.stat.wide{grid-column:1/-1}
+@media(min-width:500px){.stats{grid-template-columns:repeat(3,1fr)}}
+
+/* ── FORMS ── */
+label{font-size:12px;color:#64748b;display:block;margin-bottom:4px}
+input,select,textarea{width:100%;background:#111122;border:1px solid #2a2a3d;border-radius:8px;color:#e2e8f0;padding:8px 12px;font-size:13px;margin-bottom:10px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--mode-clr)}
+textarea{resize:vertical;min-height:60px}
+.frow{display:flex;gap:10px;flex-wrap:wrap}
+.fcol{flex:1;min-width:140px}
+
+/* ── BUTTONS ── */
+.btn{background:none;border:1px solid #2a2a3d;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12px;color:#e2e8f0}
+.btn:hover{border-color:var(--mode-clr);color:var(--mode-clr)}
+.btnp{background:var(--mode-clr);border:none;border-radius:8px;padding:9px 20px;cursor:pointer;font-size:13px;color:#fff;font-weight:500}
+.btnd{background:none;border:1px solid rgba(239,68,68,.4);border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12px;color:#ef4444}
+.btn-grn{background:#0d2d1a;border:1.5px solid rgba(34,197,94,.5);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;color:#22c55e;font-weight:500}
+.btn-red{background:#2d0d0d;border:1.5px solid rgba(239,68,68,.5);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;color:#ef4444;font-weight:500}
+.btn-wa{background:#0a2d1a;border:1.5px solid rgba(37,211,102,.4);border-radius:8px;padding:9px 14px;cursor:pointer;font-size:13px;color:#25d366;font-weight:500;display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-bottom:8px}
+
+/* ── TABLE ── */
+.tblw{overflow-x:auto;border:1px solid #1e1e2e;border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:9px 11px;border-bottom:1px solid #1e1e2e;color:#64748b;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;background:#111122}
+td{padding:10px 11px;border-bottom:1px solid #1e1e2e;vertical-align:middle}
+tr:last-child td{border:none}
+tbody tr:hover td{background:#111122;cursor:pointer}
+
+/* ── MAP ── */
+#live-map{height:320px;border-radius:10px;border:1px solid #1e1e2e;z-index:1}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:300;padding:14px}
+.modal-box{background:#0f0f1c;border:1px solid #1e1e2e;border-radius:14px;padding:22px;max-width:490px;width:100%;max-height:90vh;overflow-y:auto}
+.dr{display:flex;border-bottom:1px solid #1e1e2e;padding:8px 0;font-size:13px}
+.dl{color:#64748b;width:120px;flex-shrink:0}
+
+/* ── MISC ── */
+.empty{color:#64748b;font-size:13px;padding:20px;text-align:center}
+.err{font-size:12px;color:#ef4444;margin-bottom:8px;min-height:16px}
+.ok{font-size:12px;color:#22c55e;margin-bottom:8px;min-height:16px}
+.info-box{background:var(--mode-bg);border:1px solid var(--mode-brd);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px}
+.search-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.search-row input,.search-row select{flex:1;min-width:140px;margin-bottom:0}
+.bar-bg{height:7px;background:#111122;border-radius:4px;overflow:hidden;margin-top:4px}
+.bar-fill{height:100%;border-radius:4px}
+.list-item{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid #1e1e2e;cursor:pointer}
+.list-item:last-child{border:none}
+.pulse{animation:pulse-a 1.5s infinite}
+@keyframes pulse-a{0%,100%{opacity:1}50%{opacity:.3}}
+.ticker-wrap{overflow:hidden;border-radius:6px;padding:5px 8px;height:26px;display:flex;align-items:center}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker{animation:ticker 14s linear infinite;white-space:nowrap;display:inline-block}
+.ticker:hover{animation-play-state:paused}
+.av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0}
+.badge{border-radius:6px;padding:3px 9px;font-size:11px;font-weight:500;display:inline-block;white-space:nowrap}
+
+/* ── LOGIN ── */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#08080f;overflow:hidden;position:relative}
+.login-glow{position:fixed;top:-20%;left:50%;transform:translateX(-50%);width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,.07) 0%,transparent 70%);pointer-events:none}
+.login-card{background:#0f0f1c;border:1px solid #1e1e2e;border-radius:16px;padding:28px 26px;box-shadow:0 24px 64px rgba(124,58,237,.15);width:100%;max-width:400px}
+.pw-wrap{position:relative;margin-bottom:6px}
+.pw-wrap input{margin-bottom:0;padding-right:46px}
+.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#64748b;cursor:pointer;font-size:12px;padding:0}
+.btn-login{width:100%;padding:12px;font-size:14px;font-weight:600;border:none;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;cursor:pointer;margin-top:16px;box-shadow:0 4px 24px rgba(124,58,237,.4)}
+.splash{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:14px;background:#08080f}
+.splash p{color:#64748b;font-size:14px}
+.wa-float{position:fixed;bottom:18px;right:18px;width:48px;height:48px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;font-size:22px;z-index:200;box-shadow:0 4px 18px rgba(37,211,102,.5);text-decoration:none}
+</style>
+</head>
+<body>
+<div id="app"><div class="splash"><p>Starting ApartBook Pro…</p></div></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://js.paystack.co/v1/inline.js"></script>
+
+<script>
+// ═══════════════════════════════════════════
+//  FIREBASE CONFIG
+// ═══════════════════════════════════════════
+firebase.initializeApp({
+  apiKey:            "AIzaSyD2phMOsFSsFANPbZT2KVkfXKskg_yrbi0",
+  authDomain:        "apartbook-transport-demo.firebaseapp.com",
+  projectId:         "apartbook-transport-demo",
+  storageBucket:     "apartbook-transport-demo.firebasestorage.app",
+  messagingSenderId: "4140893337370",
+  appId:             "1:4140893337370:web:8bd0f06bf9a2bd82404fa3",
+  databaseURL:       "https://apartbook-transport-demo-default-rtdb.europe-west1.firebasedatabase.app"
+});
+
+// PAYSTACK KEY
+const PAYSTACK_KEY = "REPLACE_WITH_YOUR_PAYSTACK_PUBLIC_KEY";
+
+// SUPPORT WHATSAPP
+const SUPPORT_WA = "2348000000000";
+
+const auth = firebase.auth();
+const db   = firebase.firestore();
+const rtdb = firebase.database();
+const TS   = firebase.firestore.FieldValue.serverTimestamp;
+
+// ════════════════════════════════════════════════════
+//  CONSTANTS
+// ════════════════════════════════════════════════════
+const MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const BOOK_STATUSES=["Confirmed","Pending","Cancelled","Checked-out"];
+const RIDE_STATUSES=["Pending","Active","Completed","Cancelled"];
+const DRIVER_STATUSES=["Online","Offline","On Ride"];
+const ROLES=["admin","manager","staff","driver"];
+
+const PROP_CLRS=[
+  {c:"#7c3aed",b:"#1a1040"},{c:"#2563eb",b:"#0d1f4a"},
+  {c:"#16a34a",b:"#0a2818"},{c:"#dc2626",b:"#2d0a0a"},
+  {c:"#d97706",b:"#2d1a05"},{c:"#0891b2",b:"#062730"},
+  {c:"#c026d3",b:"#2a0a2e"},{c:"#65a30d",b:"#1a2405"},
+  {c:"#ea580c",b:"#2d1005"},{c:"#0d9488",b:"#062420"},
+];
+
+const DEFAULT_PROP_UNITS=[
+  {id:"A1",name:"Garden Suite",    floor:"Ground",beds:1,price:45000, colorIdx:0},
+  {id:"A2",name:"City View Flat",  floor:"1st",   beds:2,price:65000, colorIdx:1},
+  {id:"A3",name:"Executive Studio",floor:"2nd",   beds:1,price:55000, colorIdx:2},
+  {id:"A4",name:"Family Apartment",floor:"2nd",   beds:3,price:85000, colorIdx:3},
+  {id:"A5",name:"Deluxe Loft",     floor:"3rd",   beds:2,price:75000, colorIdx:4},
+  {id:"A6",name:"Penthouse",       floor:"Top",   beds:4,price:150000,colorIdx:5},
+];
+
+const DEFAULT_PRICING={
+  baseFare:500, perKm:120, perMinWaiting:25,
+  minFare:800,  nightSurcharge:1.5,
+  airportFee:500, bookingFee:100,
+};
+
+const BS={
+  Confirmed:   {bg:"#0d2d1a",c:"#22c55e"},
+  Pending:     {bg:"#2d1f0d",c:"#f59e0b"},
+  Cancelled:   {bg:"#2d0d0d",c:"#ef4444"},
+  "Checked-out":{bg:"#1a1040",c:"#a78bfa"},
+};
+const RS={
+  Pending:  {bg:"#2d1f0d",c:"#f59e0b"},
+  Active:   {bg:"#0d2d1a",c:"#22c55e"},
+  Completed:{bg:"#0d1f36",c:"#38bdf8"},
+  Cancelled:{bg:"#2d0d0d",c:"#ef4444"},
+};
+const DS={
+  Online:   {bg:"#0d2d1a",c:"#22c55e"},
+  Offline:  {bg:"#1a1a1a",c:"#64748b"},
+  "On Ride":{bg:"#0d1f36",c:"#38bdf8"},
+};
+
+// ════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════
+const fmt   = n  => "₦"+Number(n).toLocaleString();
+const nts   = (a,b)=> Math.max(0,(new Date(b)-new Date(a))/86400000);
+const ini   = n  => (n||"?").split(" ").map(x=>x[0]).join("").slice(0,2).toUpperCase();
+const tod   = () => new Date().toISOString().split("T")[0];
+const esc   = s  => String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const fmtWA = p  => {const d=String(p||"").replace(/\D/g,"");return d.startsWith("0")?"234"+d.slice(1):d.startsWith("234")?d:d;};
+const fmtT  = t  => {if(!t)return"—";const[h,m]=t.split(":");const hh=Number(h);return`${hh%12||12}:${m} ${hh<12?"AM":"PM"}`;};
+const nowT  = () => new Date().toTimeString().slice(0,5);
+const propClr = i=> PROP_CLRS[i%PROP_CLRS.length]||PROP_CLRS[0];
+
+function distKm(lat1,lon1,lat2,lon2){
+  const R=6371,dL=(lat2-lat1)*Math.PI/180,dl=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dL/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dl/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function calcFare(km,wait,p,night=false,airport=false){
+  let f=p.baseFare+(km*p.perKm)+(wait*p.perMinWaiting)+p.bookingFee;
+  if(airport)f+=p.airportFee;
+  if(night)f*=p.nightSurcharge;
+  return Math.max(f,p.minFare);
+}
+const isNight=()=>{const h=new Date().getHours();return h>=22||h<5;};
+
+// ════════════════════════════════════════════════════
+//  APP STATE
+// ════════════════════════════════════════════════════
+const S={
+  user:null, profile:null,
+  mode:"property",   // "property" | "transport"
+  tab:"Dashboard",
+
+  // Property
+  properties:[], selProp:null,
+  bookings:[],
+
+  // Transport
+  rides:[], drivers:[],
+  pricing:{...DEFAULT_PRICING},
+  gpsWatcher:null, isTracking:false, trackingRideId:null,
+
+  // Shared
+  staff:[], auditLog:[],
+
+  // UI
+  search:"", filterStatus:"All",
+  sel:null, editMode:false, editForm:null,
+  delId:null,
+  reportMonth:new Date().getMonth(),
+  reportYear:new Date().getFullYear(),
+  loginErr:"", loginBusy:false, showPw:false,
+};
+
+const isAdmin = ()=>S.profile?.role==="admin";
+const isMgr   = ()=>["admin","manager"].includes(S.profile?.role);
+const isDriver= ()=>S.profile?.role==="driver";
+
+// ════════════════════════════════════════════════════
+//  LOGO
+// ════════════════════════════════════════════════════
+const LOGO_PROP=(sz=30)=>`<svg width="${sz}" height="${sz}" viewBox="0 0 36 36" fill="none">
+  <rect width="36" height="36" rx="9" fill="#1a1040"/>
+  <rect x="1" y="1" width="34" height="34" rx="8.5" stroke="#7c3aed" stroke-opacity=".6"/>
+  <rect x="8" y="16" width="20" height="14" rx="1.5" fill="#2d1b69"/>
+  <rect x="8" y="16" width="20" height="14" rx="1.5" stroke="#7c3aed" stroke-width="1"/>
+  <path d="M6 17L18 7L30 17" stroke="#9d65f5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="14.5" y="22" width="7" height="8" rx="1" fill="#7c3aed" opacity=".7"/>
+  <rect x="9.5" y="19" width="4" height="3.5" rx=".7" fill="#c4b5fd" opacity=".6"/>
+  <rect x="22.5" y="19" width="4" height="3.5" rx=".7" fill="#c4b5fd" opacity=".6"/>
+  <circle cx="18" cy="11.5" r="1.2" fill="#c4b5fd"/>
+</svg>`;
+
+const LOGO_TRANS=(sz=30)=>`<svg width="${sz}" height="${sz}" viewBox="0 0 36 36" fill="none">
+  <rect width="36" height="36" rx="9" fill="#0d1f36"/>
+  <rect x="1" y="1" width="34" height="34" rx="8.5" stroke="#0ea5e9" stroke-opacity=".6"/>
+  <rect x="6" y="20" width="24" height="10" rx="2" fill="#0ea5e9" opacity=".2"/>
+  <rect x="6" y="20" width="24" height="10" rx="2" stroke="#0ea5e9"/>
+  <path d="M8 20 L10 14 Q11 12 13 12 L23 12 Q25 12 26 14 L28 20" stroke="#0ea5e9" stroke-width="1.2" fill="none"/>
+  <circle cx="11" cy="30" r="2.5" fill="#0ea5e9"/>
+  <circle cx="25" cy="30" r="2.5" fill="#0ea5e9"/>
+  <rect x="14" y="14" width="8" height="5" rx="1" fill="#7dd3fc" opacity=".5"/>
+  <circle cx="26" cy="16" r="2" fill="#22c55e"/>
+</svg>`;
+
+// ════════════════════════════════════════════════════
+//  UI BADGE HELPERS
+// ════════════════════════════════════════════════════
+const bookBadge = s=>{const c=BS[s]||{bg:"#1a1a1a",c:"#64748b"};return`<span class="badge" style="background:${c.bg};color:${c.c}">${esc(s)}</span>`;};
+const rideBadge = s=>{const c=RS[s]||{bg:"#1a1a1a",c:"#64748b"};return`<span class="badge" style="background:${c.bg};color:${c.c}">${esc(s)}</span>`;};
+const drvBadge  = s=>{const c=DS[s]||DS.Offline;return`<span class="badge" style="background:${c.bg};color:${c.c}">${esc(s)}</span>`;};
+const payBadge  = p=>`<span style="color:${p==="Paid"?"#22c55e":p==="Partial"?"#f59e0b":"#ef4444"};font-weight:500;font-size:12px">${esc(p||"Unpaid")}</span>`;
+const av        = (n,sz=30,bg="#1a1040",brd="#7c3aed44",col="#9d65f5")=>`<div class="av" style="width:${sz}px;height:${sz}px;font-size:${sz*.34}px;background:${bg};border:1.5px solid ${brd};color:${col}">${ini(n)}</div>`;
+const DR        = (l,v)=>`<div class="dr"><span class="dl">${l}</span><div style="flex:1">${v}</div></div>`;
+
+// ════════════════════════════════════════════════════
+//  AUTH ACTIONS
+// ════════════════════════════════════════════════════
+window.doLogin=async function(){
+  const email=document.getElementById("li-email")?.value?.trim();
+  const pass=document.getElementById("li-pass")?.value;
+  if(!email||!pass){S.loginErr="Please enter email and password.";render();return;}
+  S.loginBusy=true;S.loginErr="";render();
+  try{
+    const cred=await auth.signInWithEmailAndPassword(email,pass);
+    await db.collection("audit_log").add({userId:cred.user.uid,email:cred.user.email,action:"LOGIN",timestamp:TS(),device:navigator.userAgent.slice(0,100)});
+  }catch(e){
+    S.loginErr=e.code?.includes("invalid")||e.code?.includes("wrong")?"Invalid email or password.":"Error: "+e.message;
+    S.loginBusy=false;render();
+  }
+};
+
+window.doLogout=async function(){
+  try{await db.collection("audit_log").add({userId:S.user.uid,email:S.user.email,action:"LOGOUT",timestamp:TS(),device:navigator.userAgent.slice(0,100)});}catch(_){}
+  stopGPS();auth.signOut();
+};
+
+// ════════════════════════════════════════════════════
+//  DATA LOADING
+// ════════════════════════════════════════════════════
+let bkUnsub=null,rideUnsub=null,auditUnsub=null,staffUnsub=null;
+
+function loadProfile(){
+  db.collection("users").doc(S.user.uid).onSnapshot(async snap=>{
+    if(snap.exists){S.profile=snap.data();}
+    else{
+      const all=await db.collection("users").limit(1).get();
+      const d={email:S.user.email,name:S.user.email.split("@")[0],role:all.empty?"admin":"staff",createdAt:TS()};
+      await db.collection("users").doc(S.user.uid).set(d);S.profile=d;
+    }
+    // Set initial mode based on role
+    if(S.profile?.role==="driver"){S.mode="transport";S.tab="Dashboard";}
+    render();
+  });
+}
+
+function loadPricing(){
+  db.collection("settings").doc("pricing").onSnapshot(snap=>{
+    S.pricing=snap.exists?{...DEFAULT_PRICING,...snap.data()}:{...DEFAULT_PRICING};
+    render();
+  });
+}
+
+function loadProperties(){
+  db.collection("properties").orderBy("createdAt","asc").onSnapshot(async snap=>{
+    const props=snap.docs.map(d=>({...d.data(),_id:d.id}));
+    if(props.length===0){
+      const r=await db.collection("properties").add({name:"Main Property",address:"Enter your address",description:"",units:DEFAULT_PROP_UNITS,createdAt:TS()});
+      S.properties=[{name:"Main Property",address:"",units:DEFAULT_PROP_UNITS,_id:r.id}];
+      S.selProp=r.id;
+    }else{
+      S.properties=props;
+      if(!S.selProp)S.selProp=props[0]._id;
+    }
+    loadBookings();render();
+  },()=>{});
+}
+
+function loadBookings(){
+  if(bkUnsub){bkUnsub();bkUnsub=null;}
+  if(!S.selProp)return;
+  bkUnsub=db.collection("bookings").where("propertyId","==",S.selProp)
+    .onSnapshot(snap=>{
+      S.bookings=snap.docs.map(d=>({...d.data(),_id:d.id})).sort((a,b)=>(b.created?.seconds||0)-(a.created?.seconds||0));
+      render();
+    },()=>{db.collection("bookings").where("propertyId","==",S.selProp).get().then(snap=>{S.bookings=snap.docs.map(d=>({...d.data(),_id:d.id}));render();});});
+}
+
+function loadDrivers(){
+  db.collection("drivers").onSnapshot(snap=>{
+    S.drivers=snap.docs.map(d=>({...d.data(),_id:d.id}));render();
+  },()=>{});
+}
+
+function loadRides(){
+  if(rideUnsub){rideUnsub();rideUnsub=null;}
+  rideUnsub=db.collection("rides").orderBy("created","desc").limit(200)
+    .onSnapshot(snap=>{
+      S.rides=snap.docs.map(d=>({...d.data(),_id:d.id}));render();
+    },()=>{db.collection("rides").get().then(snap=>{S.rides=snap.docs.map(d=>({...d.data(),_id:d.id}));render();});});
+}
+
+// ════════════════════════════════════════════════════
+//  GPS TRACKING
+// ════════════════════════════════════════════════════
+function startGPS(rideId){
+  if(!navigator.geolocation){alert("GPS not available.");return;}
+  S.trackingRideId=rideId;S.isTracking=true;
+  S.gpsWatcher=navigator.geolocation.watchPosition(async pos=>{
+    const{latitude:lat,longitude:lng}=pos.coords;
+    try{await rtdb.ref(`drivers_live/${S.user.uid}`).set({lat,lng,speed:pos.coords.speed||0,rideId,timestamp:Date.now(),name:S.profile?.name||S.user.email});}catch(_){}
+    render();
+  },{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
+}
+
+function stopGPS(){
+  if(S.gpsWatcher!=null){navigator.geolocation.clearWatch(S.gpsWatcher);S.gpsWatcher=null;}
+  if(S.user)rtdb.ref(`drivers_live/${S.user.uid}`).remove().catch(()=>{});
+  S.isTracking=false;S.trackingRideId=null;
+}
+
+// ════════════════════════════════════════════════════
+//  PROPERTY ACTIONS
+// ════════════════════════════════════════════════════
+const curProp  = ()=>S.properties.find(p=>p._id===S.selProp)||null;
+const allUnits = ()=>curProp()?.units||[];
+const getUnit  = id=>allUnits().find(u=>u.id===id)||null;
+const occupied = ()=>{
+  const t=tod();
+  return new Set(S.bookings.filter(b=>b.checkIn<=t&&b.checkOut>t&&b.status==="Confirmed").map(b=>b.unitId));
+};
+const bookedAhead=()=>new Set(S.bookings.filter(b=>b.checkIn>tod()&&b.status==="Confirmed").map(b=>b.unitId));
+
+window.addBooking=async function(){
+  const errEl=document.getElementById("b-err");
+  const f={
+    guest:       document.getElementById("b-guest")?.value?.trim(),
+    email:       document.getElementById("b-email")?.value?.trim(),
+    phone:       document.getElementById("b-phone")?.value?.trim(),
+    unitId:      document.getElementById("b-unit")?.value,
+    checkIn:     document.getElementById("b-cin")?.value,
+    checkOut:    document.getElementById("b-cout")?.value,
+    checkInTime: document.getElementById("b-cintime")?.value||"",
+    checkOutTime:document.getElementById("b-couttime")?.value||"",
+    status:      document.getElementById("b-status")?.value||"Pending",
+    payment:     document.getElementById("b-pay")?.value||"Unpaid",
+    notes:       document.getElementById("b-notes")?.value?.trim(),
+  };
+  const showE=m=>{if(errEl)errEl.textContent=m;};
+  if(!f.guest){showE("Guest name required.");return;}
+  if(!f.unitId){showE("Please select a unit.");return;}
+  if(!f.checkIn||!f.checkOut){showE("Dates required.");return;}
+  if(f.checkOut<=f.checkIn){showE("Check-out must be after check-in.");return;}
+  try{
+    await db.collection("bookings").add({...f,propertyId:S.selProp,created:TS(),createdBy:S.user.email});
+    const u=getUnit(f.unitId);
+    const total=nts(f.checkIn,f.checkOut)*(u?.price||0);
+    const msg=encodeURIComponent(`Hello ${f.guest}! 🏠\n\nYour booking at *${curProp()?.name}* is confirmed.\n\n📍 Unit: ${u?.name}\n📅 Check-in: ${f.checkIn}${f.checkInTime?" at "+fmtT(f.checkInTime):""}\n📅 Check-out: ${f.checkOut}${f.checkOutTime?" at "+fmtT(f.checkOutTime):""}\n🌙 Nights: ${nts(f.checkIn,f.checkOut)}\n💰 Total: ${fmt(total)}\n\nThank you! 🙏`);
+    ["b-guest","b-email","b-phone","b-notes"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+    ["b-unit","b-cintime","b-couttime","b-status","b-pay"].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
+    ["b-cin","b-cout"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+    if(errEl)errEl.textContent="";
+    const okEl=document.getElementById("b-ok");if(okEl){okEl.textContent="✅ Reservation saved!";setTimeout(()=>{if(okEl)okEl.textContent="";},3000);}
+    const phone=fmtWA(f.phone||"");
+    if(phone.length>=10&&confirm("Send WhatsApp confirmation?"))window.open(`https://wa.me/${phone}?text=${msg}`,"_blank");
+  }catch(e){showE("Error: "+e.message);}
+};
+
+window.quickBookStatus=async function(id,status){
+  try{await db.collection("bookings").doc(id).update({status,updatedBy:S.user.email,updatedAt:TS()});}catch(_){}
+  if(S.sel?._id===id)S.sel={...S.sel,status};render();
+};
+
+window.saveEditBooking=async function(){
+  const f=S.editForm;if(!f?.guest||!f?.checkIn||!f?.checkOut||f.checkOut<=f.checkIn)return;
+  const{_id,...data}=f;
+  try{await db.collection("bookings").doc(_id).update({...data,updatedBy:S.user.email,updatedAt:TS()});S.sel={...f};S.editMode=false;render();}
+  catch(e){alert("Error: "+e.message);}
+};
+
+window.deleteBooking=async function(id){
+  try{await db.collection("bookings").doc(id).delete();}catch(_){}
+  S.sel=null;S.delId=null;render();
+};
+
+window.openPaystack=function(bid){
+  const b=S.bookings.find(x=>x._id===bid);if(!b)return;
+  const u=getUnit(b.unitId);const total=nts(b.checkIn,b.checkOut)*(u?.price||0);
+  if(!window.PaystackPop){alert("Paystack not loaded.");return;}
+  if(PAYSTACK_KEY.includes("REPLACE")){alert("Add your Paystack key first.");return;}
+  window.PaystackPop.setup({key:PAYSTACK_KEY,email:b.email||"guest@apartbook.ng",amount:total*100,currency:"NGN",ref:"APT-"+Date.now(),
+    onClose:()=>{},
+    callback:async res=>{
+      await db.collection("bookings").doc(bid).update({payment:"Paid",paystackRef:res.reference,updatedBy:S.user.email,updatedAt:TS()});
+      if(S.sel?._id===bid)S.sel={...b,payment:"Paid"};
+      alert("✅ Payment confirmed! Ref: "+res.reference);render();
+    }
+  }).openIframe();
+};
+
+window.addProperty=async function(){
+  const name=document.getElementById("prop-name")?.value?.trim();
+  const errEl=document.getElementById("prop-err");
+  if(!name){if(errEl)errEl.textContent="Property name required.";return;}
+  try{
+    await db.collection("properties").add({name,address:document.getElementById("prop-addr")?.value?.trim()||"",description:"",units:[],createdAt:TS(),createdBy:S.user.email});
+    ["prop-name","prop-addr"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+    if(errEl)errEl.textContent="";
+    const ok=document.getElementById("prop-ok");if(ok){ok.textContent="✅ Property added!";setTimeout(()=>{if(ok)ok.textContent="";},3000);}
+  }catch(e){if(errEl)errEl.textContent="Error: "+e.message;}
+};
+
+window.addUnit=async function(propId){
+  const name=document.getElementById("u-name")?.value?.trim();
+  const price=Number(document.getElementById("u-price")?.value)||0;
+  if(!name||!price){alert("Name and price required.");return;}
+  const prop=S.properties.find(p=>p._id===propId);if(!prop)return;
+  const nu={id:"U"+Date.now(),name,floor:document.getElementById("u-floor")?.value?.trim()||"",beds:Number(document.getElementById("u-beds")?.value)||1,price,colorIdx:(prop.units?.length||0)%PROP_CLRS.length};
+  await db.collection("properties").doc(propId).update({units:[...(prop.units||[]),nu]});
+  S.editingProp=null;render();
+};
+
+window.deleteUnit=async function(propId,unitId){
+  if(!confirm("Delete unit?"))return;
+  const prop=S.properties.find(p=>p._id===propId);if(!prop)return;
+  await db.collection("properties").doc(propId).update({units:(prop.units||[]).filter(u=>u.id!==unitId)});
+};
+
+window.selectProp=function(id){S.selProp=id;S.bookings=[];loadBookings();render();};
+
+// ════════════════════════════════════════════════════
+//  TRANSPORT ACTIONS
+// ════════════════════════════════════════════════════
+window.addRide=async function(){
+  const errEl=document.getElementById("r-err");
+  const f={
+    passenger: document.getElementById("r-passenger")?.value?.trim(),
+    phone:     document.getElementById("r-phone")?.value?.trim(),
+    pickup:    document.getElementById("r-pickup")?.value?.trim(),
+    dropoff:   document.getElementById("r-dropoff")?.value?.trim(),
+    driverId:  document.getElementById("r-driver")?.value,
+    isAirport: document.getElementById("r-airport")?.checked||false,
+    notes:     document.getElementById("r-notes")?.value?.trim(),
+    date:      document.getElementById("r-date")?.value||tod(),
+    time:      document.getElementById("r-time")?.value||nowT(),
+  };
+  const showE=m=>{if(errEl)errEl.textContent=m;};
+  if(!f.passenger){showE("Passenger name required.");return;}
+  if(!f.pickup){showE("Pickup required.");return;}
+  if(!f.dropoff){showE("Dropoff required.");return;}
+  if(!f.driverId){showE("Please assign a driver.");return;}
+  const driver=S.drivers.find(d=>d._id===f.driverId);
+  const estFare=Math.round(calcFare(5,0,S.pricing,isNight(),f.isAirport));
+  try{
+    const ref=await db.collection("rides").add({...f,status:"Pending",fare:0,estimatedFare:estFare,distanceKm:0,durationMins:0,driverName:driver?.name||"",driverPhone:driver?.phone||"",vehicle:driver?.vehicle||"",plate:driver?.plate||"",createdBy:S.user.email,created:TS(),paymentStatus:"Unpaid"});
+    if(f.driverId)await db.collection("drivers").doc(f.driverId).update({status:"On Ride",currentRideId:ref.id});
+    const msg=encodeURIComponent(`Hello ${f.passenger}! 🚗\n\nYour ride is confirmed.\n\n📍 Pickup: ${f.pickup}\n📍 Dropoff: ${f.dropoff}\n🚙 Driver: ${driver?.name||"TBA"} · ${driver?.plate||"TBA"}\n📞 ${driver?.phone||"TBA"}\n⏰ ${f.time}\n\nThank you! 🙏`);
+    ["r-passenger","r-phone","r-pickup","r-dropoff","r-notes"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+    const dEl=document.getElementById("r-driver");if(dEl)dEl.selectedIndex=0;
+    if(errEl)errEl.textContent="";
+    const ok=document.getElementById("r-ok");if(ok){ok.textContent="✅ Ride booked!";setTimeout(()=>{if(ok)ok.textContent="";},3000);}
+    const phone=fmtWA(f.phone||"");
+    if(phone.length>=10&&confirm("Send WhatsApp confirmation?"))window.open(`https://wa.me/${phone}?text=${msg}`,"_blank");
+  }catch(e){showE("Error: "+e.message);}
+};
+
+window.startRide=async function(id){
+  try{
+    await db.collection("rides").doc(id).update({status:"Active",startedAt:TS(),startTime:nowT(),startDate:tod()});
+    if(S.sel?._id===id)S.sel={...S.sel,status:"Active"};
+    startGPS(id);render();
+    alert("🚗 Ride started! GPS tracking active.");
+  }catch(e){alert("Error: "+e.message);}
+};
+
+window.completeRide=async function(id){
+  const ride=S.rides.find(r=>r._id===id);if(!ride)return;
+  const kmStr=prompt("Enter distance in km (e.g. 8.5):");if(!kmStr)return;
+  const km=parseFloat(kmStr)||0;
+  const wait=parseFloat(prompt("Enter waiting time in minutes (e.g. 5):")||"0")||0;
+  const night=isNight();
+  const fare=Math.round(calcFare(km,wait,S.pricing,night,ride.isAirport));
+  if(!confirm(`Fare: ${fmt(fare)}\n${km}km · ${wait}min wait${night?" · 🌙 night rate":""}${ride.isAirport?" · ✈️ airport":""}\n\nConfirm?`))return;
+  try{
+    await db.collection("rides").doc(id).update({status:"Completed",fare,distanceKm:km,durationMins:wait,completedAt:TS(),endTime:nowT(),endDate:tod(),isNight:night,paymentStatus:"Paid"});
+    if(ride.driverId)await db.collection("drivers").doc(ride.driverId).update({status:"Online",currentRideId:null,totalRides:firebase.firestore.FieldValue.increment(1),totalEarnings:firebase.firestore.FieldValue.increment(fare)});
+    stopGPS();if(S.sel?._id===id)S.sel={...S.sel,status:"Completed",fare};render();
+  }catch(e){alert("Error: "+e.message);}
+};
+
+window.cancelRide=async function(id){
+  if(!confirm("Cancel this ride?"))return;
+  const ride=S.rides.find(r=>r._id===id);
+  try{
+    await db.collection("rides").doc(id).update({status:"Cancelled",cancelledAt:TS()});
+    if(ride?.driverId)await db.collection("drivers").doc(ride.driverId).update({status:"Online",currentRideId:null});
+    if(S.sel?._id===id)S.sel={...S.sel,status:"Cancelled"};render();
+  }catch(e){alert("Error: "+e.message);}
+};
+
+window.addDriver=async function(){
+  const errEl=document.getElementById("d-err");
+  const f={name:document.getElementById("d-name")?.value?.trim(),phone:document.getElementById("d-phone")?.value?.trim(),vehicle:document.getElementById("d-vehicle")?.value?.trim(),plate:document.getElementById("d-plate")?.value?.trim().toUpperCase(),color:document.getElementById("d-color")?.value?.trim(),license:document.getElementById("d-license")?.value?.trim()};
+  if(!f.name||!f.phone||!f.vehicle||!f.plate){if(errEl)errEl.textContent="Name, phone, vehicle and plate required.";return;}
+  try{
+    await db.collection("drivers").add({...f,status:"Offline",totalRides:0,totalEarnings:0,rating:5.0,createdAt:TS(),createdBy:S.user.email});
+    ["d-name","d-phone","d-vehicle","d-plate","d-color","d-license"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+    if(errEl)errEl.textContent="";
+    const ok=document.getElementById("d-ok");if(ok){ok.textContent="✅ Driver added!";setTimeout(()=>{if(ok)ok.textContent="";},3000);}
+  }catch(e){if(errEl)errEl.textContent="Error: "+e.message;}
+};
+
+window.updateDriverStatus=async function(id,status){
+  try{await db.collection("drivers").doc(id).update({status});}catch(e){alert("Error: "+e.message);}
+  if(S.sel?._id===id)S.sel={...S.sel,status};render();
+};
+
+window.deleteDriver=async function(id){
+  if(!confirm("Delete this driver?"))return;
+  try{await db.collection("drivers").doc(id).delete();}catch(_){}
+  S.sel=null;render();
+};
+
+window.deleteRide=async function(id){
+  try{await db.collection("rides").doc(id).delete();}catch(_){}
+  S.sel=null;S.delId=null;render();
+};
+
+window.saveSettings=async function(){
+  const p={baseFare:Number(document.getElementById("s-base")?.value)||DEFAULT_PRICING.baseFare,perKm:Number(document.getElementById("s-perkm")?.value)||DEFAULT_PRICING.perKm,perMinWaiting:Number(document.getElementById("s-permin")?.value)||DEFAULT_PRICING.perMinWaiting,minFare:Number(document.getElementById("s-min")?.value)||DEFAULT_PRICING.minFare,nightSurcharge:Number(document.getElementById("s-night")?.value)||DEFAULT_PRICING.nightSurcharge,airportFee:Number(document.getElementById("s-airport")?.value)||DEFAULT_PRICING.airportFee,bookingFee:Number(document.getElementById("s-booking")?.value)||DEFAULT_PRICING.bookingFee};
+  try{await db.collection("settings").doc("pricing").set(p);const ok=document.getElementById("s-ok");if(ok){ok.textContent="✅ Saved!";setTimeout(()=>{if(ok)ok.textContent="";},3000);}}
+  catch(e){alert("Error: "+e.message);}
+};
+
+window.updateRole=async function(uid,role){await db.collection("users").doc(uid).update({role});};
+
+// ════════════════════════════════════════════════════
+//  EXPORT / PDF
+// ════════════════════════════════════════════════════
+window.exportPropCSV=function(){
+  const units=allUnits();
+  const rows=[["ApartBook Pro — Property Booking Export"],[`Property: ${curProp()?.name||""}`],[`Exported: ${new Date().toLocaleString()}`],[],
+    ["#","Guest","Email","Phone","Unit","Check-in","Check-in Time","Check-out","Check-out Time","Nights","Total","Status","Payment","Paystack Ref","Notes","Created By"]];
+  S.bookings.forEach((b,i)=>{const u=units.find(x=>x.id===b.unitId)||{};const nights=nts(b.checkIn,b.checkOut);rows.push([i+1,b.guest||"",b.email||"",b.phone||"",u.name||"",b.checkIn||"",fmtT(b.checkInTime),b.checkOut||"",fmtT(b.checkOutTime),nights,nights*(u.price||0),b.status||"",b.payment||"",b.paystackRef||"",b.notes||"",b.createdBy||""]);});
+  downloadCSV(rows,`ApartBook-Property-${tod()}.csv`);
+};
+
+window.exportTransCSV=function(){
+  const rows=[["ApartBook Pro — Ride Export"],[`Exported: ${new Date().toLocaleString()}`],[],
+    ["#","Passenger","Phone","Pickup","Dropoff","Driver","Vehicle","Plate","Date","Time","Km","Wait Mins","Fare","Status","Payment","Night","Airport","Notes","Created By"]];
+  S.rides.forEach((r,i)=>rows.push([i+1,r.passenger||"",r.phone||"",r.pickup||"",r.dropoff||"",r.driverName||"",r.vehicle||"",r.plate||"",r.date||"",r.time||"",r.distanceKm||0,r.durationMins||0,r.fare||0,r.status||"",r.paymentStatus||"",r.isNight?"Yes":"No",r.isAirport?"Yes":"No",r.notes||"",r.createdBy||""]));
+  const rev=S.rides.filter(r=>r.status==="Completed").reduce((s,r)=>s+(r.fare||0),0);
+  rows.push([],[],["SUMMARY"],["Total Rides",S.rides.length],["Revenue","NGN "+rev.toLocaleString()]);
+  downloadCSV(rows,`ApartBook-Rides-${tod()}.csv`);
+};
+
+function downloadCSV(rows,filename){
+  const csv=rows.map(r=>r.map(c=>{const s=String(c==null?"":c).replace(/"/g,'""');return s.includes(",")||s.includes("\n")||s.includes('"')?`"${s}"`:s;}).join(",")).join("\n");
+  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+window.generatePDF=function(mode){
+  if(!window.jspdf){alert("PDF loading. Try again.");return;}
+  const{jsPDF}=window.jspdf;const doc=new jsPDF();
+  const pfmt=n=>"NGN "+Number(n).toLocaleString();
+  if(mode==="property"){
+    const mb=S.bookings.filter(b=>{const d=new Date(b.checkIn);return d.getMonth()===S.reportMonth&&d.getFullYear()===S.reportYear;});
+    const rev=mb.filter(b=>b.payment==="Paid").reduce((s,b)=>s+(getUnit(b.unitId)?.price||0)*nts(b.checkIn,b.checkOut),0);
+    doc.setFillColor(26,16,64);doc.rect(0,0,210,42,"F");
+    doc.setTextColor(196,181,253);doc.setFontSize(20);doc.setFont("helvetica","bold");doc.text("ApartBook Pro — Property",14,18);
+    doc.setFontSize(10);doc.setFont("helvetica","normal");doc.text(`Monthly Report · ${MN[S.reportMonth]} ${S.reportYear} · ${curProp()?.name||""}`,14,30);
+    doc.setTextColor(120,120,120);doc.setFontSize(8);doc.text(`Generated: ${new Date().toLocaleString()} by ${S.user?.email||""}`,14,52);
+    doc.setFontSize(11);doc.setFont("helvetica","bold");doc.setTextColor(40,40,40);doc.text("Summary",14,62);
+    doc.autoTable({startY:66,head:[["Metric","Value"]],theme:"grid",body:[["Total Bookings",mb.length],["Confirmed",mb.filter(b=>b.status==="Confirmed").length],["Checked-out",mb.filter(b=>b.status==="Checked-out").length],["Cancelled",mb.filter(b=>b.status==="Cancelled").length],["Revenue",pfmt(rev)]],headStyles:{fillColor:[124,58,237],textColor:255},styles:{fontSize:10},columnStyles:{0:{cellWidth:120}}});
+    const y2=doc.lastAutoTable.finalY+8;doc.text("Booking Details",14,y2);
+    doc.autoTable({startY:y2+4,theme:"striped",head:[["Guest","Unit","Check-in","Check-out","Nts","Status","Pay","Amount"]],body:mb.length?mb.map(b=>[b.guest||"—",getUnit(b.unitId)?.name||"—",b.checkIn,b.checkOut,nts(b.checkIn,b.checkOut)+"",b.status,b.payment,pfmt((getUnit(b.unitId)?.price||0)*nts(b.checkIn,b.checkOut))]):[[" No bookings","","","","","","",""]],headStyles:{fillColor:[124,58,237],textColor:255,fontSize:8},styles:{fontSize:7.5}});
+    doc.save(`ApartBook-Property-${MN[S.reportMonth]}-${S.reportYear}.pdf`);
+  }else{
+    const mb=S.rides.filter(r=>{const d=new Date(r.date||"");return d.getMonth()===S.reportMonth&&d.getFullYear()===S.reportYear;});
+    const rev=mb.filter(r=>r.status==="Completed").reduce((s,r)=>s+(r.fare||0),0);
+    doc.setFillColor(13,31,54);doc.rect(0,0,210,42,"F");
+    doc.setTextColor(125,211,252);doc.setFontSize(20);doc.setFont("helvetica","bold");doc.text("ApartBook Pro — Transport",14,18);
+    doc.setFontSize(10);doc.setFont("helvetica","normal");doc.text(`Monthly Report · ${MN[S.reportMonth]} ${S.reportYear}`,14,30);
+    doc.setTextColor(120,120,120);doc.setFontSize(8);doc.text(`Generated: ${new Date().toLocaleString()} by ${S.user?.email||""}`,14,52);
+    doc.setFontSize(11);doc.setFont("helvetica","bold");doc.setTextColor(40,40,40);doc.text("Summary",14,62);
+    doc.autoTable({startY:66,head:[["Metric","Value"]],theme:"grid",body:[["Total Rides",mb.length],["Completed",mb.filter(r=>r.status==="Completed").length],["Cancelled",mb.filter(r=>r.status==="Cancelled").length],["Total Distance",mb.reduce((s,r)=>s+(r.distanceKm||0),0).toFixed(1)+" km"],["Revenue",pfmt(rev)]],headStyles:{fillColor:[14,165,233],textColor:255},styles:{fontSize:10},columnStyles:{0:{cellWidth:120}}});
+    const y2=doc.lastAutoTable.finalY+8;doc.text("Ride Details",14,y2);
+    doc.autoTable({startY:y2+4,theme:"striped",head:[["Passenger","Driver","Pickup","Dropoff","Km","Status","Fare"]],body:mb.length?mb.map(r=>[r.passenger||"—",r.driverName||"—",(r.pickup||"—").slice(0,18),(r.dropoff||"—").slice(0,18),(r.distanceKm||0).toFixed(1),r.status||"—",pfmt(r.fare||0)]):[["No rides","","","","","",""]],headStyles:{fillColor:[14,165,233],textColor:255,fontSize:8},styles:{fontSize:7.5}});
+    doc.save(`ApartBook-Transport-${MN[S.reportMonth]}-${S.reportYear}.pdf`);
+  }
+};
+
+// ════════════════════════════════════════════════════
+//  LIVE MAP
+// ════════════════════════════════════════════════════
+let leafMap=null,mapMarkers={};
+
+function initMap(){
+  const el=document.getElementById("live-map");if(!el)return;
+  if(leafMap){leafMap.invalidateSize();return;}
+  leafMap=L.map("live-map").setView([6.5244,3.3792],12);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap",maxZoom:19}).addTo(leafMap);
+  rtdb.ref("drivers_live").on("value",snap=>{
+    Object.values(mapMarkers).forEach(m=>{try{leafMap.removeLayer(m);}catch(_){}});
+    mapMarkers={};
+    const data=snap.val()||{};
+    Object.entries(data).forEach(([uid,loc])=>{
+      if(!loc.lat||!loc.lng)return;
+      const icon=L.divIcon({html:`<div style="background:#0ea5e9;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px rgba(14,165,233,.8)"></div>`,iconSize:[14,14],className:""});
+      mapMarkers[uid]=L.marker([loc.lat,loc.lng],{icon}).bindPopup(`🚗 ${loc.name||"Driver"}`).addTo(leafMap);
+    });
+  });
+  if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{if(leafMap)leafMap.setView([p.coords.latitude,p.coords.longitude],13);},()=>{});
+}
+
+// ════════════════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════════════════
+window.setMode=function(mode){
+  S.mode=mode;S.tab="Dashboard";S.sel=null;
+  document.body.className=mode==="transport"?"transport-mode":"";
+  render();window.scrollTo({top:0,behavior:"smooth"});
+};
+
+window.goTo=function(tab){
+  S.tab=tab;S.sel=null;S.editMode=false;
+  if(tab==="Audit"&&!auditUnsub)auditUnsub=db.collection("audit_log").orderBy("timestamp","desc").limit(150).onSnapshot(snap=>{S.auditLog=snap.docs.map(d=>({...d.data(),_id:d.id}));render();});
+  if(tab==="Staff"&&!staffUnsub)staffUnsub=db.collection("users").onSnapshot(snap=>{S.staff=snap.docs.map(d=>({...d.data(),_id:d.id}));render();});
+  render();window.scrollTo({top:0,behavior:"smooth"});
+  if(tab==="Live Map")setTimeout(()=>initMap(),80);
+};
+
+window.openSel=function(id){
+  S.sel=S.rides.find(x=>x._id===id)||S.bookings.find(x=>x._id===id)||S.drivers.find(x=>x._id===id)||null;render();
+};
+window.closeSel=function(){S.sel=null;S.editMode=false;render();};
+window.openEdit=function(){S.editMode=true;S.editForm={...S.sel};render();};
+window.setDelId=function(id){S.delId=id;render();};
+window.clearDel=function(){S.delId=null;render();};
+window.setSearch=function(v){S.search=v;render();};
+window.setFilter=function(v){S.filterStatus=v;render();};
+window.setRptMonth=function(v){S.reportMonth=Number(v);render();};
+window.setRptYear=function(v){S.reportYear=Number(v);render();};
+window.togglePw=function(){S.showPw=!S.showPw;render();};
+window.updateEF=function(k,v){if(S.editForm)S.editForm[k]=v;};
+window.refreshTotal=function(){
+  try{
+    const uid=document.getElementById("b-unit")?.value,cin=document.getElementById("b-cin")?.value,cout=document.getElementById("b-cout")?.value,el=document.getElementById("total-preview");
+    if(!el)return;
+    if(uid&&cin&&cout&&cout>cin){const u=getUnit(uid);const t=nts(cin,cout)*(u?.price||0);el.innerHTML=`<div class="info-box"><span style="color:#64748b">Est. total: </span><strong style="color:var(--mode-clr)">${fmt(t)}</strong><span style="color:#64748b"> (${nts(cin,cout)} nights × ${fmt(u?.price||0)})</span></div>`;}
+    else el.innerHTML="";
+  }catch(_){}
+};
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: LOGIN ───
+// ════════════════════════════════════════════════════
+function renderLogin(){return`
+<div class="login-wrap">
+  <div class="login-glow"></div>
+  <div style="width:100%;max-width:400px;position:relative">
+    <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:28px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+        ${LOGO_PROP(44)}
+        <span style="font-size:22px;font-weight:800;background:linear-gradient(135deg,#c4b5fd,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent">ApartBook Pro</span>
+      </div>
+      <div style="font-size:13px;color:#64748b">Property &amp; Transport Management</div>
+    </div>
+    <div class="login-card">
+      <div style="font-size:20px;font-weight:700;margin-bottom:4px">Welcome back</div>
+      <div style="font-size:13px;color:#64748b;margin-bottom:20px">Sign in to manage your business</div>
+      <label>Email address</label>
+      <input id="li-email" type="email" placeholder="admin@yourdomain.com" onkeydown="if(event.key==='Enter')doLogin()"/>
+      <label>Password</label>
+      <div class="pw-wrap">
+        <input id="li-pass" type="${S.showPw?"text":"password"}" placeholder="Your password" onkeydown="if(event.key==='Enter')doLogin()"/>
+        <button class="pw-toggle" onclick="togglePw()">${S.showPw?"Hide":"Show"}</button>
+      </div>
+      ${S.loginErr?`<div class="err" style="margin:6px 0">${esc(S.loginErr)}</div>`:""}
+      <button class="btn-login" onclick="doLogin()" ${S.loginBusy?"disabled":""}>${S.loginBusy?"Signing in…":"Sign In →"}</button>
+      <div style="font-size:12px;color:#475569;text-align:center;margin-top:16px;line-height:1.6">Contact your administrator to create or reset your account.</div>
+    </div>
+  </div>
+</div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: HEADER ───
+// ════════════════════════════════════════════════════
+function renderHeader(){
+  const isProp=S.mode==="property";
+  const PROP_TABS=[{n:"Dashboard",s:true},{n:"Properties",s:isAdmin()},{n:"New Booking",s:isMgr()},{n:"Bookings",s:true},{n:"Customers",s:isMgr()},{n:"Calendar",s:true},{n:"Reports",s:isMgr()},{n:"Staff",s:isAdmin()},{n:"Audit",s:isAdmin()}].filter(t=>t.s);
+  const TRAN_TABS=[{n:"Dashboard",s:true},{n:"New Ride",s:isMgr()},{n:"Live Map",s:true},{n:"Drivers",s:isMgr()},{n:"Rides",s:true},{n:"Reports",s:isMgr()},{n:"Settings",s:isAdmin()},{n:"Staff",s:isAdmin()},{n:"Audit",s:isAdmin()}].filter(t=>t.s&&!(isDriver()&&["Staff","Audit","Drivers"].includes(t.n)));
+  const tabs=isProp?PROP_TABS:TRAN_TABS;
+  const activeRides=S.rides.filter(r=>r.status==="Active").length;
+  const propSel=S.properties.length>1?`<select onchange="selectProp(this.value)" style="background:#111122;border:1px solid #2a2a3d;border-radius:7px;color:#e2e8f0;padding:3px 6px;font-size:10px;outline:none;max-width:90px;flex-shrink:0">${S.properties.map(p=>`<option value="${p._id}" ${p._id===S.selProp?"selected":""}>${esc(p.name)}</option>`).join("")}</select>`:curProp()?`<span style="font-size:10px;color:#64748b;padding:3px 7px;background:#111122;border:1px solid #1e1e2e;border-radius:6px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0">${esc(curProp().name)}</span>`:"";
+  return`
+<div class="hdr">
+  <div class="hdr-top">
+    <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
+      ${isProp?LOGO_PROP(26):LOGO_TRANS(26)}
+      <span style="font-size:13px;font-weight:800;background:linear-gradient(135deg,${isProp?"#c4b5fd,#7c3aed":"#7dd3fc,#0ea5e9"});-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap">ApartBook Pro</span>
+    </div>
+    ${isProp?propSel:""}
+    ${activeRides>0&&!isProp?`<div class="pulse" style="background:#22c55e;color:#fff;border-radius:20px;padding:3px 9px;font-size:10px;font-weight:600;flex-shrink:0">🚗 ${activeRides}</div>`:""}
+    ${!isDriver()?`<div class="mode-toggle" style="margin-left:6px">
+      <button class="mode-btn ${isProp?"active-prop":""}" onclick="setMode('property')">🏠 Property</button>
+      <button class="mode-btn ${!isProp?"active-trans":""}" onclick="setMode('transport')">🚗 Transport</button>
+    </div>`:""}
+    <div style="margin-left:auto;display:flex;align-items:center;gap:5px;flex-shrink:0;padding-left:6px">
+      <div style="display:flex;align-items:center;gap:5px;background:#111122;border:1px solid #2a2a3d;border-radius:8px;padding:4px 7px 4px 5px">
+        ${av(S.user.email,22,"#111122","var(--mode-clr)","var(--mode-clr)")}
+        <div style="max-width:78px">
+          <div style="font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(S.user.email.split("@")[0])}</div>
+          <div style="font-size:9px;color:var(--mode-clr);text-transform:capitalize">${esc(S.profile?.role||"")}</div>
+        </div>
+      </div>
+      <button onclick="doLogout()" style="display:flex;flex-direction:column;align-items:center;background:#2d0d0d;border:1.5px solid rgba(239,68,68,.5);border-radius:8px;padding:5px 8px;cursor:pointer;gap:1px;flex-shrink:0">
+        <span style="font-size:13px;color:#ef4444;line-height:1">⏻</span>
+        <span style="font-size:8px;color:#ef4444;font-weight:700;letter-spacing:.04em">OUT</span>
+      </button>
+    </div>
+  </div>
+  <div class="hdr-tabs">
+    ${tabs.map(t=>`<button class="tab-btn ${S.tab===t.n?"active":""}" onclick="goTo('${t.n}')">${t.n}</button>`).join("")}
+  </div>
+</div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: PROPERTY DASHBOARD ───
+// ════════════════════════════════════════════════════
+function renderPropDashboard(){
+  const t=tod();const occ=occupied();const booked=bookedAhead();
+  const now=new Date();const cm=now.getMonth();const cy=now.getFullYear();
+  const monthBk=S.bookings.filter(b=>{const d=new Date(b.checkIn);return d.getMonth()===cm&&d.getFullYear()===cy;});
+  const monthRev=monthBk.filter(b=>b.payment==="Paid"||b.payment==="Partial").reduce((s,b)=>s+(getUnit(b.unitId)?.price||0)*nts(b.checkIn,b.checkOut)*(b.payment==="Paid"?1:.5),0);
+  const checkInsToday=S.bookings.filter(b=>b.checkIn===t&&b.status!=="Cancelled");
+  const checkOutsToday=S.bookings.filter(b=>b.checkOut===t&&b.status!=="Cancelled");
+  const upcoming=S.bookings.filter(b=>b.checkIn>t&&b.status==="Confirmed").slice(0,4);
+  const units=allUnits();
+  const fmtTime=t12=>{if(!t12)return"—";const[h,m]=t12.split(":");const hh=Number(h);return`${hh%12||12}:${m} ${hh<12?"AM":"PM"}`;};
+
+  return`
+  <div class="pg-title">🏠 Property Overview <span style="color:#64748b;font-size:13px;font-weight:400">— ${t}</span></div>
+  ${S.isTracking?`<div style="background:#0d1f36;border:1px solid rgba(14,165,233,.4);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:between;gap:10px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:8px;flex:1"><div class="pulse" style="width:9px;height:9px;background:#22c55e;border-radius:50%"></div><span style="font-size:13px;color:#22c55e;font-weight:500">🚗 Transport GPS tracking active in background</span></div>
+    <button onclick="setMode('transport')" style="font-size:11px;color:#38bdf8;background:none;border:1px solid rgba(14,165,233,.4);border-radius:6px;padding:4px 10px;cursor:pointer">View Transport</button>
+  </div>`:""}
+  <div class="stats">
+    <div class="stat" style="border-top:3px solid #7c3aed"><div class="stat-l">Total bookings</div><div class="stat-v" style="color:#9d65f5">${S.bookings.length}</div></div>
+    <div class="stat" style="border-top:3px solid #22c55e"><div class="stat-l">Occupied</div><div class="stat-v" style="color:#22c55e">${occ.size}/${units.length}</div></div>
+    <div class="stat" style="border-top:3px solid #f59e0b"><div class="stat-l">Check-ins today</div><div class="stat-v" style="color:#f59e0b">${checkInsToday.length}</div></div>
+    <div class="stat" style="border-top:3px solid #60a5fa"><div class="stat-l">Check-outs today</div><div class="stat-v" style="color:#60a5fa">${checkOutsToday.length}</div></div>
+    <div class="stat wide" style="border-top:3px solid #7c3aed"><div class="stat-l">Total Monthly Gross Revenue — <span style="color:#9d65f5;font-weight:500">${MN[cm]} ${cy}</span></div><div class="stat-v" style="color:#9d65f5;font-size:18px">${fmt(Math.round(monthRev))}</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Unit Status — ${esc(curProp()?.name||"")}</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:11px"><span>🔴 Occupied</span><span>🟡 Booked</span><span>🟢 Free</span></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100%,1fr));gap:8px">
+    ${units.map(u=>{
+      const c=propClr(u.colorIdx||0);const isOcc=occ.has(u.id);const isBkd=!isOcc&&booked.has(u.id);
+      const cur=S.bookings.find(b=>b.unitId===u.id&&b.checkIn<=t&&b.checkOut>t&&b.status==="Confirmed");
+      const upcomingBk=S.bookings.find(b=>b.unitId===u.id&&b.checkIn>t&&b.status==="Confirmed");
+      const bClr=isOcc?c.c+"66":isBkd?"#f59e0b66":"#1e1e2e";
+      const lClr=isOcc?c.c:isBkd?"#f59e0b":"#2a2a3d";
+      const bgClr=isOcc?c.b:isBkd?"#2d1f0d":"#111122";
+      const sLabel=isOcc?"🔴 Occupied":isBkd?"🟡 Booked":"🟢 Free";
+      const sBg=isOcc?c.c:isBkd?"#f59e0b":"#1e1e2e";
+      const sTxt=isOcc||isBkd?"#000":"#64748b";
+      return`<div style="border:1px solid ${bClr};border-left:3px solid ${lClr};border-radius:10px;padding:11px 14px;background:${bgClr}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="font-weight:600;font-size:13px;color:${isOcc?c.c:isBkd?"#f59e0b":"#e2e8f0"}">${esc(u.name)}</span>
+          <span style="font-size:10px;font-weight:600;color:${sTxt};background:${sBg};border-radius:20px;padding:2px 9px">${sLabel}</span>
+        </div>
+        <div style="font-size:11px;color:#64748b">${u.floor?u.floor+" · ":""}${u.beds} bed${u.beds!==1?"s":""} · ${fmt(u.price)}/night</div>
+        ${cur?`<div style="overflow:hidden;margin-top:5px;padding-top:5px;border-top:1px solid ${c.c}22;background:${c.c}11;border-radius:5px;height:26px;display:flex;align-items:center;padding:0 7px">
+          <div class="ticker" style="font-size:11px;font-weight:500;color:${c.c};white-space:nowrap;display:inline-block">👤&nbsp;<strong>${esc(cur.guest)}</strong>&nbsp;·&nbsp;Checks out:&nbsp;<strong>${cur.checkOut}</strong>${cur.checkOutTime?`&nbsp;at&nbsp;<strong>${fmtTime(cur.checkOutTime)}</strong>`:""}&nbsp;&nbsp;&nbsp;⬥&nbsp;&nbsp;&nbsp;👤&nbsp;<strong>${esc(cur.guest)}</strong>&nbsp;·&nbsp;Checks out:&nbsp;<strong>${cur.checkOut}</strong>${cur.checkOutTime?`&nbsp;at&nbsp;<strong>${fmtTime(cur.checkOutTime)}</strong>`:""}</div>
+        </div>`:""}
+        ${isBkd&&upcomingBk?`<div style="overflow:hidden;margin-top:5px;background:#f59e0b11;border-radius:5px;height:26px;display:flex;align-items:center;padding:0 7px">
+          <div class="ticker" style="font-size:11px;font-weight:500;color:#f59e0b;white-space:nowrap;display:inline-block">📅&nbsp;<strong>${esc(upcomingBk.guest)}</strong>&nbsp;·&nbsp;Checks in:&nbsp;<strong>${upcomingBk.checkIn}</strong>${upcomingBk.checkInTime?`&nbsp;at&nbsp;<strong>${fmtTime(upcomingBk.checkInTime)}</strong>`:""}&nbsp;&nbsp;&nbsp;⬥&nbsp;&nbsp;&nbsp;📅&nbsp;<strong>${esc(upcomingBk.guest)}</strong>&nbsp;·&nbsp;Checks in:&nbsp;<strong>${upcomingBk.checkIn}</strong>${upcomingBk.checkInTime?`&nbsp;at&nbsp;<strong>${fmtTime(upcomingBk.checkInTime)}</strong>`:""}</div>
+        </div>`:""}
+      </div>`;
+    }).join("")}
+    ${units.length===0?`<div style="color:#64748b;font-size:13px">No units yet. Go to Properties tab to add units.</div>`:""}
+    </div>
+  </div>
+
+  ${checkInsToday.length>0?`<div class="card"><div class="card-title">📥 Today's Check-ins (${checkInsToday.length})</div>
+    ${checkInsToday.map(b=>{const u=getUnit(b.unitId);const c=u?propClr(u.colorIdx||0):PROP_CLRS[0];return`<div class="list-item" onclick="openSel('${b._id}');goTo('Bookings')">
+      ${av(b.guest,34,c.b,c.c+"44",c.c)}
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(b.guest)}</div><div style="font-size:11px;color:#64748b">${esc(u?.name||"—")} · ${nts(b.checkIn,b.checkOut)} nights</div>
+      <div style="font-size:11px;color:#f59e0b;margin-top:2px">⏰ Check-in: ${b.checkInTime?fmtTime(b.checkInTime):"Time not set"}</div></div>
+      ${bookBadge(b.status)}</div>`;}).join("")}
+  </div>`:""}
+
+  ${checkOutsToday.length>0?`<div class="card"><div class="card-title">📤 Today's Check-outs (${checkOutsToday.length})</div>
+    ${checkOutsToday.map(b=>{const u=getUnit(b.unitId);const c=u?propClr(u.colorIdx||0):PROP_CLRS[0];return`<div class="list-item" onclick="openSel('${b._id}');goTo('Bookings')">
+      ${av(b.guest,34,c.b,c.c+"44",c.c)}
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(b.guest)}</div><div style="font-size:11px;color:#64748b">${esc(u?.name||"—")} · stayed ${nts(b.checkIn,b.checkOut)} nights</div>
+      <div style="font-size:11px;color:#60a5fa;margin-top:2px">⏰ Check-out: ${b.checkOutTime?fmtTime(b.checkOutTime):"Time not set"}</div></div>
+      ${payBadge(b.payment)}</div>`;}).join("")}
+  </div>`:""}
+
+  <div class="card"><div class="card-title">🗓 Upcoming Confirmed Check-ins</div>
+    ${upcoming.length===0?`<div class="empty">No upcoming confirmed check-ins.</div>`:""}
+    ${upcoming.map(b=>{const u=getUnit(b.unitId);const c=u?propClr(u.colorIdx||0):PROP_CLRS[0];return`<div class="list-item" onclick="openSel('${b._id}');goTo('Bookings')">
+      ${av(b.guest,32,c.b,c.c+"44",c.c)}
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">${esc(b.guest)}</div>
+      <div style="font-size:11px;color:#64748b">${esc(u?.name||"—")} · ${b.checkIn} → ${b.checkOut} · ${nts(b.checkIn,b.checkOut)} nights</div>
+      ${b.checkInTime?`<div style="font-size:11px;color:#9d65f5">⏰ ${fmtTime(b.checkInTime)}</div>`:""}</div>
+      ${bookBadge(b.status)}</div>`;}).join("")}
+  </div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: TRANSPORT DASHBOARD ───
+// ════════════════════════════════════════════════════
+function renderTransDashboard(){
+  const t=tod();const now=new Date();const cm=now.getMonth();const cy=now.getFullYear();
+  const active=S.rides.filter(r=>r.status==="Active");
+  const todayR=S.rides.filter(r=>r.date===t||r.created?.toDate?.()?.toISOString()?.startsWith(t));
+  const monthR=S.rides.filter(r=>{const d=new Date(r.date||"");return d.getMonth()===cm&&d.getFullYear()===cy;});
+  const monthRev=monthR.filter(r=>r.status==="Completed").reduce((s,r)=>s+(r.fare||0),0);
+  const todayRev=todayR.filter(r=>r.status==="Completed").reduce((s,r)=>s+(r.fare||0),0);
+  const totalRev=S.rides.filter(r=>r.status==="Completed").reduce((s,r)=>s+(r.fare||0),0);
+  const onlineDrvs=S.drivers.filter(d=>d.status!=="Offline");
+  const maxE=Math.max(...S.drivers.map(d=>d.totalEarnings||0),1);
+
+  return`
+  <div class="pg-title">🚗 Transport Overview <span style="color:#64748b;font-size:13px;font-weight:400">— ${t}</span></div>
+  ${S.isTracking?`<div style="background:#0d2d1a;border:1px solid rgba(34,197,94,.4);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div class="pulse" style="width:9px;height:9px;background:#22c55e;border-radius:50%"></div>
+    <span style="font-size:13px;color:#22c55e;font-weight:500">GPS Tracking Active — sharing your location</span>
+    <button onclick="if(confirm('Stop GPS?'))stopGPS();render();" style="font-size:11px;color:#ef4444;background:none;border:1px solid rgba(239,68,68,.4);border-radius:6px;padding:4px 10px;cursor:pointer;margin-left:auto">Stop</button>
+  </div>`:""}
+  <div class="stats">
+    <div class="stat" style="border-top:3px solid #0ea5e9"><div class="stat-l">Total rides</div><div class="stat-v" style="color:#0ea5e9">${S.rides.length}</div></div>
+    <div class="stat" style="border-top:3px solid #22c55e"><div class="stat-l">Active now</div><div class="stat-v" style="color:#22c55e">${active.length}</div></div>
+    <div class="stat" style="border-top:3px solid #f59e0b"><div class="stat-l">Rides today</div><div class="stat-v" style="color:#f59e0b">${todayR.length}</div></div>
+    <div class="stat" style="border-top:3px solid #a78bfa"><div class="stat-l">Online drivers</div><div class="stat-v" style="color:#a78bfa">${onlineDrvs.length}/${S.drivers.length}</div></div>
+    <div class="stat" style="border-top:3px solid #22c55e"><div class="stat-l">Revenue today</div><div class="stat-v" style="color:#22c55e;font-size:16px">${fmt(todayRev)}</div></div>
+    <div class="stat wide" style="border-top:3px solid #0ea5e9;display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      <div><div class="stat-l">Monthly Gross — ${MN[cm]}</div><div class="stat-v" style="color:#0ea5e9;font-size:16px">${fmt(monthRev)}</div></div>
+      <div><div class="stat-l">All-time revenue</div><div class="stat-v" style="color:#22c55e;font-size:15px">${fmt(totalRev)}</div></div>
+      <div><div class="stat-l">Completion rate</div><div class="stat-v" style="color:#f59e0b;font-size:15px">${S.rides.length?Math.round(S.rides.filter(r=>r.status==="Completed").length/S.rides.length*100):0}%</div></div>
+    </div>
+  </div>
+
+  <div class="card"><div class="card-title">🚗 Active Rides (${active.length})</div>
+    ${active.length===0?`<div class="empty">No active rides right now.</div>`:""}
+    ${active.map(r=>`<div class="list-item" onclick="openSel('${r._id}')">
+      ${av(r.passenger,34,"#0d1f36","#0ea5e944","#38bdf8")}
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(r.passenger)}</div>
+      <div style="font-size:11px;color:#64748b">📍 ${esc(r.pickup)} → ${esc(r.dropoff)}</div>
+      <div style="font-size:11px;color:#0ea5e9">🚙 ${esc(r.driverName||"—")} · ${esc(r.plate||"—")}</div></div>
+      ${rideBadge(r.status)}</div>`).join("")}
+  </div>
+
+  <div class="card"><div class="card-title">👨‍✈️ Driver Status</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:8px">
+      ${S.drivers.map(d=>`<div style="background:#111122;border:1px solid #2a2a3d;border-radius:9px;padding:10px 12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="font-weight:500;font-size:13px">${esc(d.name)}</span>${drvBadge(d.status||"Offline")}
+        </div>
+        <div style="font-size:11px;color:#64748b">${esc(d.vehicle||"—")} · ${esc(d.plate||"—")}</div>
+        <div style="font-size:11px;color:#0ea5e9;margin-top:2px">${d.totalRides||0} rides · ${fmt(d.totalEarnings||0)}</div>
+        <div class="bar-bg" style="margin-top:6px"><div class="bar-fill" style="width:${((d.totalEarnings||0)/maxE*100).toFixed(0)}%;background:linear-gradient(90deg,#0ea5e9,#0ea5e966)"></div></div>
+      </div>`).join("")}
+      ${S.drivers.length===0?`<div style="color:#64748b;font-size:13px">No drivers yet. Go to Drivers tab to add.</div>`:""}
+    </div>
+  </div>
+
+  <div class="card"><div class="card-title">🕐 Recent Rides</div>
+    ${S.rides.slice(0,5).map(r=>`<div class="list-item" onclick="openSel('${r._id}')">
+      ${av(r.passenger,30,"#0d1f36","#0ea5e944","#38bdf8")}
+      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">${esc(r.passenger)}</div>
+      <div style="font-size:10px;color:#64748b">${esc(r.pickup||"—")} → ${esc(r.dropoff||"—")}</div>
+      <div style="font-size:10px;color:#64748b">${esc(r.driverName||"—")} · ${r.date||""}</div></div>
+      <div style="text-align:right;flex-shrink:0">${rideBadge(r.status)}${r.fare?`<div style="font-size:11px;color:#22c55e;font-weight:500;margin-top:3px">${fmt(r.fare)}</div>`:""}</div>
+    </div>`).join("")}
+    ${S.rides.length===0?`<div class="empty">No rides yet.</div>`:""}
+  </div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: PROPERTIES TAB ───
+// ════════════════════════════════════════════════════
+function renderProperties(){
+  if(!isAdmin())return`<div class="empty">Admin access required.</div>`;
+  const occ=occupied();
+  return`
+  <div class="pg-title">Properties Management</div>
+  <div class="card">
+    <div class="card-title">Add New Property</div>
+    <div class="frow">
+      <div class="fcol"><label>Property name *</label><input id="prop-name" placeholder="e.g. Ocean View Apartments"/></div>
+      <div class="fcol"><label>Address</label><input id="prop-addr" placeholder="Full address"/></div>
+    </div>
+    <div id="prop-err" class="err"></div><div id="prop-ok" class="ok"></div>
+    <button class="btnp" onclick="addProperty()">Add Property</button>
+  </div>
+  ${S.properties.map(p=>`
+  <div class="card" style="border-color:${p._id===S.selProp?"var(--mode-clr)":"#1e1e2e"}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div><div style="font-weight:600;font-size:15px">${esc(p.name)}</div><div style="font-size:12px;color:#64748b;margin-top:2px">${esc(p.address||"")}</div></div>
+      ${p._id!==S.selProp?`<button class="btn" onclick="selectProp('${p._id}')">Set Active</button>`:`<span style="font-size:11px;color:#22c55e;padding:5px 11px;border:1px solid rgba(34,197,94,.3);border-radius:8px">✓ Active</span>`}
+    </div>
+    <div style="font-weight:500;font-size:13px;margin-bottom:8px">Units (${p.units?.length||0})</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:8px;margin-bottom:10px">
+      ${(p.units||[]).map(u=>{const c=propClr(u.colorIdx||0);const isOcc=occ.has(u.id);return`<div style="background:${isOcc?c.b:"#111122"};border:1px solid ${isOcc?c.c+"44":"#2a2a3d"};border-radius:8px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-size:12px;font-weight:500;color:${c.c}">${esc(u.name)}</div><div style="font-size:10px;color:#64748b">${u.floor?u.floor+" · ":""}${u.beds} bed · ${fmt(u.price)}/night</div></div>
+        <button onclick="deleteUnit('${p._id}','${u.id}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:18px;padding:0 4px;line-height:1">×</button>
+      </div>`;}).join("")}
+      ${(p.units||[]).length===0?`<div style="font-size:13px;color:#64748b">No units yet.</div>`:""}
+    </div>
+    ${S.editingProp===p._id?`
+    <div style="background:#111122;border-radius:8px;padding:13px;border:1px solid #2a2a3d">
+      <div style="font-weight:500;font-size:13px;margin-bottom:8px">Add Unit</div>
+      <div class="frow">
+        <div class="fcol"><label>Unit name *</label><input id="u-name" placeholder="Suite 101"/></div>
+        <div class="fcol"><label>Floor</label><input id="u-floor" placeholder="Ground"/></div>
+        <div style="flex:0 0 80px"><label>Beds</label><input id="u-beds" type="number" min="1" value="1"/></div>
+        <div class="fcol"><label>Price/night (₦)*</label><input id="u-price" type="number" placeholder="50000"/></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btnp" onclick="addUnit('${p._id}')">Add Unit</button>
+        <button class="btn" onclick="S.editingProp=null;render()">Cancel</button>
+      </div>
+    </div>`:`<button class="btn" onclick="S.editingProp='${p._id}';render()">+ Add Unit</button>`}
+  </div>`).join("")}`;
+}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: NEW BOOKING ───
+// ════════════════════════════════════════════════════
+function renderNewBooking(){
+  if(!isMgr())return`<div class="empty">Manager access required.</div>`;
+  const t=tod();const occ=occupied();const booked=bookedAhead();const units=allUnits();
+  const times=["06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00"];
+  const tfmt=t=>{const[h,m]=t.split(":");const hh=Number(h);return`${hh%12||12}:${m} ${hh<12?"AM":"PM"}`;};
+  return`
+  <div class="pg-title">New Reservation — ${esc(curProp()?.name||"")}</div>
+  <div class="card">
+    <div class="frow">
+      <div class="fcol"><label>Guest name *</label><input id="b-guest" placeholder="Full name"/></div>
+      <div class="fcol"><label>Email <span style="color:#475569;font-size:11px">(optional)</span></label><input id="b-email" type="email" placeholder="guest@email.com"/></div>
+    </div>
+    <div class="frow">
+      <div class="fcol"><label>Phone (WhatsApp) 📱</label><input id="b-phone" placeholder="0801-234-5678"/></div>
+    </div>
+    <label>Unit *</label>
+    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px">
+      ${units.map(u=>{const c=propClr(u.colorIdx||0);const isOcc=occ.has(u.id);const isBkd=!isOcc&&booked.has(u.id);const upBk=S.bookings.find(b=>b.unitId===u.id&&b.checkIn>t&&b.status==="Confirmed");
+      return`<div onclick="${isOcc?"":`document.getElementById('b-unit').value='${u.id}';refreshTotal();document.querySelectorAll('.ucard').forEach(x=>{x.style.borderColor='#2a2a3d';x.style.background='#111122'});this.style.borderColor='${c.c}';this.style.background='${c.b}';`}"
+        class="ucard" style="border:2px solid ${isOcc?"#ef444466":isBkd?"#f59e0b66":c.c+"44"};border-radius:10px;padding:10px 14px;background:${isOcc?"#2d0d0d":isBkd?"#2d1f0d":"#111122"};cursor:${isOcc?"not-allowed":"pointer"};transition:.2s;opacity:${isOcc?.6:1}">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:${isOcc?"#ef4444":isBkd?"#f59e0b":c.c}">${esc(u.name)}</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px">${u.floor?u.floor+" · ":""}${u.beds} bed${u.beds!==1?"s":""} · ${fmt(u.price)}/night</div>
+            ${isBkd&&upBk?`<div style="font-size:10px;color:#f59e0b;margin-top:2px">📅 ${esc(upBk.guest)} · ${upBk.checkIn} → ${upBk.checkOut}</div>`:""}
+            ${isOcc?`<div style="font-size:10px;color:#ef4444;margin-top:2px">⛔ Currently occupied — cannot book</div>`:""}
+          </div>
+          <span style="font-size:10px;font-weight:700;background:${isOcc?"#ef4444":isBkd?"#f59e0b":"#22c55e"};color:#000;border-radius:20px;padding:3px 10px;white-space:nowrap;flex-shrink:0;margin-left:8px">${isOcc?"🔴 Occupied":isBkd?"🟡 Booked":"🟢 Available"}</span>
+        </div>
+      </div>`;}).join("")}
+      ${units.length===0?`<div style="color:#64748b;font-size:13px">No units. Add them in Properties tab first.</div>`:""}
+    </div>
+    <select id="b-unit" style="display:none"><option value="">—</option>${units.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join("")}</select>
+    <div class="frow">
+      <div class="fcol"><label>Check-in date *</label><input id="b-cin" type="date" onchange="refreshTotal()"/></div>
+      <div class="fcol"><label>Check-in time ⏰</label><select id="b-cintime"><option value="">— Time —</option>${times.map(t=>`<option value="${t}">${tfmt(t)}</option>`).join("")}</select></div>
+    </div>
+    <div class="frow">
+      <div class="fcol"><label>Check-out date *</label><input id="b-cout" type="date" onchange="refreshTotal()"/></div>
+      <div class="fcol"><label>Check-out time ⏰</label><select id="b-couttime"><option value="">— Time —</option>${times.map(t=>`<option value="${t}">${tfmt(t)}</option>`).join("")}</select></div>
+    </div>
+    <div class="frow">
+      <div class="fcol"><label>Status</label><select id="b-status">${BOOK_STATUSES.map(s=>`<option>${s}</option>`).join("")}</select></div>
+      <div class="fcol"><label>Payment</label><select id="b-pay">${["Paid","Partial","Unpaid"].map(s=>`<option>${s}</option>`).join("")}</select></div>
+    </div>
+    <label>Special notes</label><textarea id="b-notes" placeholder="Special requests…"></textarea>
+    <div id="total-preview"></div>
+    <div id="b-err" class="err"></div><div id="b-ok" class="ok"></div>
+    <button class="btnp" onclick="addBooking()" style="width:100%;padding:13px;font-size:14px">Save Reservation</button>
+  </div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: ALL BOOKINGS ───
+// ════════════════════════════════════════════════════
+function renderBookings(){
+  const filtered=S.bookings.filter(b=>{const q=S.search.toLowerCase();return(!q||b.guest?.toLowerCase().includes(q)||b.email?.toLowerCase().includes(q)||getUnit(b.unitId)?.name?.toLowerCase().includes(q))&&(S.filterStatus==="All"||b.status===S.filterStatus);});
+  return`
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <div class="pg-title" style="margin-bottom:0">All Bookings <span style="color:#64748b;font-size:13px;font-weight:400">(${filtered.length})</span></div>
+    ${isMgr()?`<button class="btnp" onclick="goTo('New Booking')">+ New Booking</button>`:""}
+  </div>
+  <div class="search-row">
+    <input placeholder="Search guest, email, unit…" value="${esc(S.search)}" oninput="setSearch(this.value)"/>
+    <select onchange="setFilter(this.value)"><option value="All">All statuses</option>${BOOK_STATUSES.map(s=>`<option value="${s}" ${S.filterStatus===s?"selected":""}>${s}</option>`).join("")}</select>
+  </div>
+  <div class="tblw"><table>
+    <thead><tr><th>Guest</th><th>Unit</th><th>Check-in</th><th>Check-out</th><th>Nts</th><th>Status</th><th>Payment</th><th></th></tr></thead>
+    <tbody>
+      ${filtered.length===0?`<tr><td colspan="8" class="empty">No bookings found.</td></tr>`:""}
+      ${filtered.map(b=>{const u=getUnit(b.unitId);const c=u?propClr(u.colorIdx||0):PROP_CLRS[0];return`<tr onclick="openSel('${b._id}')">
+        <td><div style="display:flex;align-items:center;gap:8px">${av(b.guest,28,c.b,c.c+"44",c.c)}<div><div style="font-weight:500">${esc(b.guest)}</div><div style="font-size:10px;color:#64748b">${esc(b.email||b.phone||"—")}</div></div></div></td>
+        <td><span class="badge" style="background:${c.b};color:${c.c};border:1px solid ${c.c}33">${esc(u?.name||"—")}</span></td>
+        <td style="font-size:11px">${b.checkIn}${b.checkInTime?`<div style="color:#64748b">${fmtT(b.checkInTime)}</div>`:""}</td>
+        <td style="font-size:11px">${b.checkOut}${b.checkOutTime?`<div style="color:#64748b">${fmtT(b.checkOutTime)}</div>`:""}</td>
+        <td>${nts(b.checkIn,b.checkOut)}</td><td>${bookBadge(b.status)}</td><td>${payBadge(b.payment)}</td>
+        <td><button class="btn" style="font-size:10px;padding:4px 9px" onclick="event.stopPropagation();openSel('${b._id}')">View</button></td>
+      </tr>`;}).join("")}
+    </tbody>
+  </table></div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: CUSTOMERS ───
+// ════════════════════════════════════════════════════
+function renderCustomers(){
+  if(!isMgr())return`<div class="empty">Manager access required.</div>`;
+  const m={};S.bookings.forEach(b=>{if(!m[b.email||b.phone||b.guest])m[b.email||b.phone||b.guest]={guest:b.guest,email:b.email,phone:b.phone,bookings:[]};m[b.email||b.phone||b.guest].bookings.push(b);});
+  const cust=Object.values(m).sort((a,b)=>b.bookings.length-a.bookings.length);
+  return`
+  <div class="pg-title">Customer Records <span style="color:#64748b;font-size:13px;font-weight:400">(${cust.length})</span></div>
+  ${cust.length===0?`<div class="card"><div class="empty">No customers yet.</div></div>`:""}
+  ${cust.map(c=>{const spent=c.bookings.filter(b=>b.payment==="Paid").reduce((s,b)=>s+nts(b.checkIn,b.checkOut)*(getUnit(b.unitId)?.price||0),0);const phone=fmtWA(c.phone||"");
+  return`<div class="card">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap">
+      ${av(c.guest,42)}
+      <div style="flex:1"><div style="font-weight:500">${esc(c.guest)}</div><div style="font-size:12px;color:#64748b">${esc(c.email||"—")}${c.phone?` · ${esc(c.phone)}`:""}</div></div>
+      <div style="text-align:right"><div style="font-size:12px;color:#64748b">${c.bookings.length} booking${c.bookings.length!==1?"s":""}</div>${spent>0?`<div style="font-size:12px;color:#22c55e;font-weight:500">${fmt(spent)} paid</div>`:""}</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:${phone.length>=10?"10px":"0"}">
+      ${c.bookings.map(b=>{const u=getUnit(b.unitId);const cl=u?propClr(u.colorIdx||0):PROP_CLRS[0];return`<div onclick="openSel('${b._id}');goTo('Bookings')" style="display:flex;align-items:center;gap:5px;font-size:11px;background:#111122;border-radius:7px;padding:5px 9px;cursor:pointer;border:1px solid #1e1e2e">
+        <span class="badge" style="background:${cl.b};color:${cl.c};font-size:10px">${esc(u?.name||"—")}</span><span style="color:#64748b">${b.checkIn}–${b.checkOut}</span>${bookBadge(b.status)}
+      </div>`;}).join("")}
+    </div>
+    ${phone.length>=10?`<button class="btn-wa" onclick="window.open('https://wa.me/${phone}','_blank')">💬 WhatsApp ${esc(c.guest.split(" ")[0])}</button>`:""}
+  </div>`;}).join("")}`;
+}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: CALENDAR ───
+// ════════════════════════════════════════════════════
+function renderCalendar(){
+  const y=S.reportYear,m=S.reportMonth;
+  const first=new Date(y,m,1).getDay();const days=new Date(y,m+1,0).getDate();const t=tod();
+  const ds=d=>`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+  const bfd=d=>S.bookings.filter(b=>{const s=ds(d);return b.checkIn<=s&&b.checkOut>s&&b.status!=="Cancelled";});
+  const units=allUnits();
+  return`
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+    <button class="btn" onclick="if(S.reportMonth===0){S.reportMonth=11;S.reportYear--;}else S.reportMonth--;render()">← Prev</button>
+    <div style="font-size:17px;font-weight:600">${MN[m]} ${y}</div>
+    <button class="btn" onclick="if(S.reportMonth===11){S.reportMonth=0;S.reportYear++;}else S.reportMonth++;render()">Next →</button>
+  </div>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin-bottom:5px">
+      ${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>`<div style="font-size:11px;color:#64748b;text-align:center;padding:4px 0">${d}</div>`).join("")}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px">
+      ${Array(first).fill(0).map(()=>"<div></div>").join("")}
+      ${Array.from({length:days},(_,i)=>i+1).map(day=>{
+        const bks=bfd(day);const isT=ds(day)===t;
+        return`<div style="min-height:56px;border:${isT?`1.5px solid #7c3aed`:`1px solid #1e1e2e`};border-radius:7px;padding:3px 5px;background:${bks.length?"#1a1040":"#111122"}">
+          <div style="font-size:11px;font-weight:${isT?600:400};color:${isT?"#9d65f5":"#64748b"};margin-bottom:2px">${day}</div>
+          ${bks.slice(0,2).map(b=>{const u=getUnit(b.unitId);const c=u?propClr(u.colorIdx||0):PROP_CLRS[0];return`<div style="font-size:9px;background:${c.c};color:#fff;border-radius:3px;padding:1px 4px;margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${esc(u?.name?.split(" ")[0]||"—")}</div>`;}).join("")}
+          ${bks.length>2?`<div style="font-size:9px;color:#9d65f5">+${bks.length-2}</div>`:""}
+        </div>`;
+      }).join("")}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
+      ${units.map(u=>{const c=propClr(u.colorIdx||0);return`<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b"><span style="width:10px;height:10px;border-radius:2px;background:${c.c};display:inline-block"></span>${esc(u.name)}</span>`;}).join("")}
+    </div>
+  </div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: PROPERTY REPORTS ───
+// ════════════════════════════════════════════════════
+function renderPropReports(){
+  if(!isMgr())return`<div class="empty">Manager access required.</div>`;
+  const units=allUnits();
+  const mb=S.bookings.filter(b=>{const d=new Date(b.checkIn);return d.getMonth()===S.reportMonth&&d.getFullYear()===S.reportYear;});
+  const rev=mb.filter(b=>b.payment==="Paid").reduce((s,b)=>s+(getUnit(b.unitId)?.price||0)*nts(b.checkIn,b.checkOut),0);
+  const totalRev=S.bookings.filter(b=>b.payment==="Paid").reduce((s,b)=>s+(getUnit(b.unitId)?.price||0)*nts(b.checkIn,b.checkOut),0);
+  const maxR=Math.max(...units.map(u=>S.bookings.filter(b=>b.unitId===u.id&&b.payment==="Paid").reduce((s,b)=>s+nts(b.checkIn,b.checkOut)*u.price,0)),1);
+  const firstBk=S.bookings.length>0?[...S.bookings].sort((a,b)=>(a.created?.seconds||0)-(b.created?.seconds||0))[0]:null;
+  return`
+  <div class="pg-title">🏠 Property Reports</div>
+  <div class="card prop-accent">
+    <div class="card-title">🗄️ Data Summary — ${esc(curProp()?.name||"")}</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px">
+      <div style="background:#111122;border:1px solid #2a2a3d;border-radius:10px;padding:11px 13px"><div style="font-size:10px;color:#64748b;margin-bottom:3px">Total bookings</div><div style="font-size:20px;font-weight:700;color:#9d65f5">${S.bookings.length}</div></div>
+      <div style="background:#111122;border:1px solid #2a2a3d;border-radius:10px;padding:11px 13px"><div style="font-size:10px;color:#64748b;margin-bottom:3px">Total customers</div><div style="font-size:20px;font-weight:700;color:#22c55e">${new Set(S.bookings.map(b=>b.email||b.phone||b.guest)).size}</div></div>
+      <div style="background:#111122;border:1px solid #2a2a3d;border-radius:10px;padding:11px 13px"><div style="font-size:10px;color:#64748b;margin-bottom:3px">Total units</div><div style="font-size:20px;font-weight:700;color:#60a5fa">${units.length}</div></div>
+      <div style="background:#111122;border:1px solid #2a2a3d;border-radius:10px;padding:11px 13px"><div style="font-size:10px;color:#64748b;margin-bottom:3px">All-time revenue</div><div style="font-size:15px;font-weight:700;color:#22c55e">${fmt(totalRev)}</div></div>
+      <div style="background:#111122;border:1px solid #2a2a3d;border-radius:10px;padding:11px 13px"><div style="font-size:10px;color:#64748b;margin-bottom:3px">Data since</div><div style="font-size:12px;font-weight:700;color:#f59e0b">${firstBk?.created?.toDate?.()?.toLocaleDateString()||"—"}</div></div>
+      <div style="background:#111122;border:1px solid #2a2a3d;border-radius:10px;padding:11px 13px"><div style="font-size:10px;color:#64748b;margin-bottom:3px">DB status</div><div style="font-size:12px;font-weight:700;color:#22c55e">🟢 Online</div></div>
+    </div>
+    <button onclick="exportPropCSV()" style="width:100%;padding:13px;background:linear-gradient(135deg,#0d2d1a,#0a2010);border:1.5px solid rgba(34,197,94,.5);border-radius:10px;color:#22c55e;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px">
+      <span style="font-size:18px">📊</span><span>Download Bookings as Excel / CSV</span>
+    </button>
+    <div style="font-size:11px;color:#475569;text-align:center">All ${S.bookings.length} bookings · guest details · payments · dates</div>
+  </div>
+  <div class="card">
+    <div class="card-title">📄 Monthly PDF Report</div>
+    <div class="frow">
+      <div class="fcol"><label>Month</label><select onchange="setRptMonth(this.value)">${MN.map((mn,i)=>`<option value="${i}" ${i===S.reportMonth?"selected":""}>${mn}</option>`).join("")}</select></div>
+      <div class="fcol"><label>Year</label><select onchange="setRptYear(this.value)">${[2024,2025,2026,2027].map(y=>`<option value="${y}" ${y===S.reportYear?"selected":""}>${y}</option>`).join("")}</select></div>
+    </div>
+    <div style="background:#111122;border-radius:9px;padding:13px;margin-bottom:14px">
+      <div style="font-size:10px;color:#64748b;margin-bottom:8px;font-weight:500;text-transform:uppercase;letter-spacing:.04em">Preview: ${MN[S.reportMonth]} ${S.reportYear}</div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap">
+        <div><div style="font-size:10px;color:#64748b">Bookings</div><div style="font-size:17px;font-weight:700;color:#9d65f5">${mb.length}</div></div>
+        <div><div style="font-size:10px;color:#64748b">Confirmed</div><div style="font-size:17px;font-weight:700;color:#22c55e">${mb.filter(b=>b.status==="Confirmed").length}</div></div>
+        <div><div style="font-size:10px;color:#64748b">Cancelled</div><div style="font-size:17px;font-weight:700;color:#ef4444">${mb.filter(b=>b.status==="Cancelled").length}</div></div>
+        <div><div style="font-size:10px;color:#64748b">Revenue</div><div style="font-size:15px;font-weight:700;color:#22c55e">${fmt(rev)}</div></div>
+      </div>
+    </div>
+    <button class="btnp" onclick="generatePDF('property')" style="width:100%;padding:12px;display:flex;align-items:center;justify-content:center;gap:8px">📥 Download PDF</button>
+  </div>
+  <div class="card">
+    <div class="card-title">📈 All-Time Revenue by Unit</div>
+    ${units.map(u=>{const c=propClr(u.colorIdx||0);const r=S.bookings.filter(b=>b.unitId===u.id&&b.payment==="Paid").reduce((s,b)=>s+nts(b.checkIn,b.checkOut)*u.price,0);const cnt=S.bookings.filter(b=>b.unitId===u.id).length;
+    return`<div style="margin-bottom:13px"><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px"><span style="color:${c.c};font-weight:500">${esc(u.name)}</span><span style="color:#22c55e;font-weight:500">${fmt(r)}<span style="color:#64748b;font-weight:400;font-size:10px"> · ${cnt} bk</span></span></div><div class="bar-bg"><div class="bar-fill" style="width:${(r/maxR*100).toFixed(1)}%;background:linear-gradient(90deg,${c.c},${c.c}88)"></div></div></div>`;}).join("")}
+    ${units.length===0?`<div class="empty">No units yet.</div>`:""}
+  </div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: NEW RIDE ───
+// ════════════════════════════════════════════════════
+function renderNewRide(){
+  if(!isMgr())return`<div class="empty">Manager access required.</div>`;
+  const avail=S.drivers.filter(d=>d.status!=="On Ride");
+  return`
+  <div class="pg-title">🚗 Book New Ride</div>
+  <div class="card">
+    <div class="frow">
+      <div class="fcol"><label>Passenger name *</label><input id="r-passenger" placeholder="Full name"/></div>
+      <div class="fcol"><label>Phone (WhatsApp) 📱</label><input id="r-phone" placeholder="0801-234-5678"/></div>
+    </div>
+    <div class="frow">
+      <div class="fcol"><label>Pickup location *</label><input id="r-pickup" placeholder="e.g. Lekki Phase 1 Gate"/></div>
+      <div class="fcol"><label>Dropoff location *</label><input id="r-dropoff" placeholder="e.g. Murtala Airport"/></div>
+    </div>
+    <div class="frow">
+      <div class="fcol"><label>Date *</label><input id="r-date" type="date" value="${tod()}"/></div>
+      <div class="fcol"><label>Time *</label><input id="r-time" type="time" value="${nowT()}"/></div>
+    </div>
+    <label>Assign driver *</label>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:12px">
+      ${avail.map(d=>`<div onclick="document.getElementById('r-driver').value='${d._id}';document.querySelectorAll('.dcard').forEach(x=>{x.style.borderColor='#2a2a3d';x.style.background='#111122'});this.style.borderColor='#0ea5e9';this.style.background='#0d1f36';"
+        class="dcard" style="border:2px solid #2a2a3d;border-radius:9px;padding:10px 12px;cursor:pointer;background:#111122;transition:.2s">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px"><span style="font-weight:500;font-size:12px">${esc(d.name)}</span>${drvBadge(d.status||"Offline")}</div>
+        <div style="font-size:10px;color:#64748b">${esc(d.vehicle||"—")} · ${esc(d.plate||"—")}</div>
+        <div style="font-size:10px;color:#0ea5e9;margin-top:2px">${d.totalRides||0} rides · ${fmt(d.totalEarnings||0)}</div>
+      </div>`).join("")}
+      ${avail.length===0?`<div style="color:#64748b;font-size:13px;grid-column:1/-1">No available drivers. All are on ride.</div>`:""}
+    </div>
+    <select id="r-driver" style="display:none"><option value="">—</option>${avail.map(d=>`<option value="${d._id}">${esc(d.name)}</option>`).join("")}</select>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;background:#111122;border:1px solid #2a2a3d;border-radius:8px;padding:10px 14px">
+      <input id="r-airport" type="checkbox" style="width:18px;height:18px;margin-bottom:0;flex-shrink:0"/>
+      <div><div style="font-size:13px;font-weight:500">Airport ride ✈️</div><div style="font-size:11px;color:#64748b">Adds ${fmt(S.pricing.airportFee)} surcharge${isNight()?" · 🌙 Night rate also active":""}</div></div>
+    </div>
+    <label>Notes</label><textarea id="r-notes" placeholder="Any special instructions…"></textarea>
+    <div class="info-box" style="font-size:12px">
+      <div style="color:#64748b;margin-bottom:5px">📊 Current Pricing</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <span>Base: <strong style="color:#38bdf8">${fmt(S.pricing.baseFare)}</strong></span>
+        <span>Per km: <strong style="color:#38bdf8">${fmt(S.pricing.perKm)}</strong></span>
+        <span>Per min: <strong style="color:#38bdf8">${fmt(S.pricing.perMinWaiting)}</strong></span>
+        <span>Min: <strong style="color:#38bdf8">${fmt(S.pricing.minFare)}</strong></span>
+        ${isNight()?`<span style="color:#f59e0b">🌙 Night: ${S.pricing.nightSurcharge}x</span>`:""}
+      </div>
+    </div>
+    <div id="r-err" class="err"></div><div id="r-ok" class="ok"></div>
+    <button class="btnp" onclick="addRide()" style="width:100%;padding:13px;font-size:14px">🚗 Book Ride</button>
+  </div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: LIVE MAP ───
+// ════════════════════════════════════════════════════
+function renderLiveMap(){
+  const active=S.rides.filter(r=>r.status==="Active");
+  return`
+  <div class="pg-title">🗺️ Live Fleet Map</div>
+  <div class="card">
+    <div style="font-size:13px;color:#64748b;margin-bottom:10px">Live driver locations update every few seconds automatically.</div>
+    <div id="live-map"></div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:#64748b">
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#0ea5e9;margin-right:4px"></span>Live driver</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;margin-right:4px"></span>Available</span>
+    </div>
+  </div>
+  <div class="card"><div class="card-title">🚗 Active Rides (${active.length})</div>
+    ${active.length===0?`<div class="empty">No active rides. Drivers appear on map when rides are started.</div>`:""}
+    ${active.map(r=>`<div class="list-item">
+      ${av(r.passenger,34,"#0d1f36","#0ea5e944","#38bdf8")}
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(r.passenger)}</div>
+      <div style="font-size:11px;color:#64748b">📍 ${esc(r.pickup)} → ${esc(r.dropoff)}</div>
+      <div style="font-size:11px;color:#0ea5e9">🚙 ${esc(r.driverName||"—")} · ${esc(r.plate||"—")}</div></div>
+      <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+        <button class="btn-grn" style="font-size:10px;padding:5px 9px" onclick="completeRide('${r._id}')">✅ Done</button>
+        <button class="btn-red" style="font-size:10px;padding:5px 9px" onclick="cancelRide('${r._id}')">❌ Cancel</button>
+      </div>
+    </div>`).join("")}
+  </div>
+  <div class="card trans-accent"><div class="card-title">📍 Driver GPS Panel</div>
+    <div style="font-size:13px;color:#64748b;margin-bottom:12px;line-height:1.6">If you are a driver, tap below to start sharing your live location with the dispatcher.</div>
+    ${S.isTracking?`<div style="background:#0d2d1a;border:1px solid rgba(34,197,94,.4);border-radius:8px;padding:12px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+      <div class="pulse" style="width:11px;height:11px;background:#22c55e;border-radius:50%"></div>
+      <span style="color:#22c55e;font-weight:500">GPS Active — location is being shared</span>
+    </div>
+    <button class="btn-red" style="width:100%;padding:11px" onclick="stopGPS();render()">⏹ Stop Sharing Location</button>`:`
+    <button class="btn-grn" style="width:100%;padding:12px;font-size:14px" onclick="startGPS('manual-'+Date.now());render()">📍 Start Sharing My Location</button>`}
+  </div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: DRIVERS ───
+// ════════════════════════════════════════════════════
+function renderDrivers(){
+  if(!isMgr())return`<div class="empty">Manager access required.</div>`;
+  return`
+  <div class="pg-title">Driver Management (${S.drivers.length})</div>
+  <div class="card">
+    <div class="card-title">➕ Add New Driver</div>
+    <div class="frow">
+      <div class="fcol"><label>Full name *</label><input id="d-name" placeholder="Driver full name"/></div>
+      <div class="fcol"><label>Phone *</label><input id="d-phone" placeholder="0801-234-5678"/></div>
+    </div>
+    <div class="frow">
+      <div class="fcol"><label>Vehicle type *</label>
+        <select id="d-vehicle"><option value="">— Select —</option>
+          ${["Toyota Camry","Toyota Corolla","Toyota Sienna","Honda Civic","Honda Accord","Honda CR-V","Hyundai Elantra","Kia Rio","Ford Explorer","Lexus ES350","Mercedes C-Class","Other"].map(v=>`<option>${v}</option>`).join("")}
+        </select>
+      </div>
+      <div class="fcol"><label>Plate number *</label><input id="d-plate" placeholder="LAG-123-AA" style="text-transform:uppercase"/></div>
+    </div>
+    <div class="frow">
+      <div class="fcol"><label>Car color</label><input id="d-color" placeholder="e.g. Black"/></div>
+      <div class="fcol"><label>Driver's license</label><input id="d-license" placeholder="License number"/></div>
+    </div>
+    <div id="d-err" class="err"></div><div id="d-ok" class="ok"></div>
+    <button class="btnp" onclick="addDriver()">Add Driver</button>
+  </div>
+  <div class="tblw"><table>
+    <thead><tr><th>Driver</th><th>Vehicle</th><th>Plate</th><th>Status</th><th>Rides</th><th>Earnings</th><th></th></tr></thead>
+    <tbody>
+      ${S.drivers.length===0?`<tr><td colspan="7" class="empty">No drivers yet.</td></tr>`:""}
+      ${S.drivers.map(d=>`<tr onclick="openSel('${d._id}')">
+        <td><div style="display:flex;align-items:center;gap:8px">${av(d.name,28,"#0d1f36","#0ea5e944","#38bdf8")}<div><div style="font-weight:500">${esc(d.name)}</div><div style="font-size:10px;color:#64748b">${esc(d.phone||"—")}</div></div></div></td>
+        <td style="font-size:11px">${esc(d.vehicle||"—")}</td>
+        <td style="font-size:12px;color:#0ea5e9;font-weight:500">${esc(d.plate||"—")}</td>
+        <td>${drvBadge(d.status||"Offline")}</td>
+        <td style="color:#38bdf8;font-weight:500">${d.totalRides||0}</td>
+        <td style="color:#22c55e;font-size:12px;font-weight:500">${fmt(d.totalEarnings||0)}</td>
+        <td><button class="btn" style="font-size:10px;padding:4px 9px" onclick="event.stopPropagation();openSel('${d._id}')">View</button></td>
+      </tr>`).join("")}
+    </tbody>
+  </table></div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: ALL RIDES ───
+// ════════════════════════════════════════════════════
+function renderRides(){
+  const filtered=S.rides.filter(r=>{const q=S.search.toLowerCase();return(!q||r.passenger?.toLowerCase().includes(q)||r.driverName?.toLowerCase().includes(q)||r.pickup?.toLowerCase().includes(q)||r.dropoff?.toLowerCase().includes(q))&&(S.filterStatus==="All"||r.status===S.filterStatus);});
+  return`
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <div class="pg-title" style="margin-bottom:0">All Rides <span style="color:#64748b;font-size:13px;font-weight:400">(${filtered.length})</span></div>
+    ${isMgr()?`<button class="btnp" onclick="goTo('New Ride')">+ New Ride</button>`:""}
+  </div>
+  <div class="search-row">
+    <input placeholder="Search passenger, driver, location…" value="${esc(S.search)}" oninput="setSearch(this.value)"/>
+    <select onchange="setFilter(this.value)"><option value="All">All</option>${RIDE_STATUSES.map(s=>`<option value="${s}" ${S.filterStatus===s?"selected":""}>${s}</option>`).join("")}</select>
+  </div>
+  <div class="tblw"><table>
+    <thead><tr><th>Passenger</th><th>Driver</th><th>Pickup</th><th>Dropoff</th><th>Date</th><th>Km</th><th>Fare</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      ${filtered.length===0?`<tr><td colspan="9" class="empty">No rides found.</td></tr>`:""}
+      ${filtered.map(r=>`<tr onclick="openSel('${r._id}')">
+        <td><div style="display:flex;align-items:center;gap:7px">${av(r.passenger,26,"#0d1f36","#0ea5e944","#38bdf8")}<div><div style="font-weight:500;font-size:12px">${esc(r.passenger)}</div><div style="font-size:10px;color:#64748b">${esc(r.phone||"—")}</div></div></div></td>
+        <td style="font-size:11px"><div style="font-weight:500">${esc(r.driverName||"—")}</div><div style="color:#0ea5e9">${esc(r.plate||"—")}</div></td>
+        <td style="font-size:10px;color:#64748b;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.pickup||"—")}</td>
+        <td style="font-size:10px;color:#64748b;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.dropoff||"—")}</td>
+        <td style="font-size:10px;color:#64748b;white-space:nowrap">${r.date||""}</td>
+        <td style="font-size:11px">${(r.distanceKm||0).toFixed(1)}</td>
+        <td style="font-size:12px;color:#22c55e;font-weight:500">${r.fare?fmt(r.fare):"—"}</td>
+        <td>${rideBadge(r.status)}</td>
+        <td><button class="btn" style="font-size:10px;padding:4px 8px" onclick="event.stopPropagation();openSel('${r._id}')">View</button></td>
+      </tr>`).join("")}
+    </tbody>
+  </table></div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: TRANSPORT REPORTS ───
+// ════════════════════════════════════════════════════
+function renderTransReports(){
+  if(!isMgr())return`<div class="empty">Manager access required.</div>`;
+  const mb=S.rides.filter(r=>{const d=new Date(r.date||"");return d.getMonth()===S.reportMonth&&d.getFullYear()===S.reportYear;});
+  const rev=mb.filter(r=>r.status==="Completed").reduce((s,r)=>s+(r.fare||0),0);
+  const totalRev=S.rides.filter(r=>r.status==="Completed").reduce((s,r)=>s+(r.fare||0),0);
+  const maxE=Math.max(...S.drivers.map(d=>d.totalEarnings||0),1);
+  return`
+  <div class="pg-title">🚗 Transport Reports</div>
+  <div class="card trans-accent">
+    <div class="card-title">🗄️ Data Summary</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px">
+      <div style="background:#111122;border:1px solid #2a2a3d;border-radius:10px;padding:11px 13px"><div style="font-size:10px;color:#64748b;margin-bottom:3px">Total rides stored</div><div style="font-size:20px;font-weight:700;color:#0ea5e9">${S.rides.length}</div></div>
+      <div style="background:#111122;border:1px solid #2a2a3d;border-radius:10px;padding:11px 13px"><div style="font-size:10px;color:#64748b;margin-bottom:3px">Total drivers</div><div style="font-size:20px;font-weight:700;color:#22c55e">${S.drivers.length}</div></div>
+      <div style="background:#111122;border:1px solid #2a2a3d;border-radius:10px;padding:11px 13px"><div style="font-size:10px;color:#64748b;margin-bottom:3px">All-time revenue</div><div style="font-size:15px;font-weight:700;color:#22c55e">${fmt(totalRev)}</div></div>
+      <div style="background:#111122;border:1px solid #2a2a3d;border-radius:10px;padding:11px 13px"><div style="font-size:10px;color:#64748b;margin-bottom:3px">Total km driven</div><div style="font-size:15px;font-weight:700;color:#0ea5e9">${S.rides.reduce((s,r)=>s+(r.distanceKm||0),0).toFixed(0)} km</div></div>
+      <div style="background:#111122;border:1px solid #2a2a3d;border-radius:10px;padding:11px 13px"><div style="font-size:10px;color:#64748b;margin-bottom:3px">Completion rate</div><div style="font-size:15px;font-weight:700;color:#f59e0b">${S.rides.length?Math.round(S.rides.filter(r=>r.status==="Completed").length/S.rides.length*100):0}%</div></div>
+      <div style="background:#111122;border:1px solid #2a2a3d;border-radius:10px;padding:11px 13px"><div style="font-size:10px;color:#64748b;margin-bottom:3px">DB status</div><div style="font-size:12px;font-weight:700;color:#22c55e">🟢 Online</div></div>
+    </div>
+    <button onclick="exportTransCSV()" style="width:100%;padding:13px;background:linear-gradient(135deg,#0d2d1a,#0a2010);border:1.5px solid rgba(34,197,94,.5);border-radius:10px;color:#22c55e;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px">
+      <span style="font-size:18px">📊</span><span>Download Rides as Excel / CSV</span>
+    </button>
+    <div style="font-size:11px;color:#475569;text-align:center">All ${S.rides.length} rides · passenger · driver · distance · fare</div>
+  </div>
+  <div class="card">
+    <div class="card-title">📄 Monthly PDF Report</div>
+    <div class="frow">
+      <div class="fcol"><label>Month</label><select onchange="setRptMonth(this.value)">${MN.map((mn,i)=>`<option value="${i}" ${i===S.reportMonth?"selected":""}>${mn}</option>`).join("")}</select></div>
+      <div class="fcol"><label>Year</label><select onchange="setRptYear(this.value)">${[2024,2025,2026,2027].map(y=>`<option value="${y}" ${y===S.reportYear?"selected":""}>${y}</option>`).join("")}</select></div>
+    </div>
+    <div style="background:#111122;border-radius:9px;padding:13px;margin-bottom:14px">
+      <div style="font-size:10px;color:#64748b;margin-bottom:8px;font-weight:500;text-transform:uppercase;letter-spacing:.04em">Preview: ${MN[S.reportMonth]} ${S.reportYear}</div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap">
+        <div><div style="font-size:10px;color:#64748b">Rides</div><div style="font-size:17px;font-weight:700;color:#0ea5e9">${mb.length}</div></div>
+        <div><div style="font-size:10px;color:#64748b">Completed</div><div style="font-size:17px;font-weight:700;color:#22c55e">${mb.filter(r=>r.status==="Completed").length}</div></div>
+        <div><div style="font-size:10px;color:#64748b">Cancelled</div><div style="font-size:17px;font-weight:700;color:#ef4444">${mb.filter(r=>r.status==="Cancelled").length}</div></div>
+        <div><div style="font-size:10px;color:#64748b">Revenue</div><div style="font-size:15px;font-weight:700;color:#22c55e">${fmt(rev)}</div></div>
+      </div>
+    </div>
+    <button class="btnp" onclick="generatePDF('transport')" style="width:100%;padding:12px;display:flex;align-items:center;justify-content:center;gap:8px">📥 Download PDF</button>
+  </div>
+  <div class="card">
+    <div class="card-title">👨‍✈️ Driver Earnings</div>
+    ${S.drivers.length===0?`<div class="empty">No drivers yet.</div>`:""}
+    ${S.drivers.map(d=>`<div style="margin-bottom:13px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px">
+        <span style="color:#38bdf8;font-weight:500">${esc(d.name)} <span style="color:#64748b;font-weight:400">· ${d.totalRides||0} rides</span></span>
+        <span style="color:#22c55e;font-weight:500">${fmt(d.totalEarnings||0)}</span>
+      </div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${((d.totalEarnings||0)/maxE*100).toFixed(1)}%;background:linear-gradient(90deg,#0ea5e9,#0ea5e966)"></div></div>
+    </div>`).join("")}
+  </div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: SETTINGS ───
+// ════════════════════════════════════════════════════
+function renderSettings(){
+  if(!isAdmin())return`<div class="empty">Admin access required.</div>`;
+  const p=S.pricing;
+  return`
+  <div class="pg-title">⚙️ Transport Fare Settings</div>
+  <div class="card">
+    <div style="background:var(--mode-bg);border:1px solid var(--mode-brd);border-radius:8px;padding:11px 13px;font-size:12px;color:#64748b;line-height:1.7;margin-bottom:16px">
+      Formula: <strong style="color:#38bdf8">Base fare + (km × rate) + (wait mins × rate) + booking fee</strong><br>
+      Night surcharge (10pm–5am) and airport fee are applied on top when selected.
+    </div>
+    <div class="frow">
+      <div class="fcol"><label>Base fare per ride (₦)</label><input id="s-base" type="number" value="${p.baseFare}"/></div>
+      <div class="fcol"><label>Rate per kilometre (₦)</label><input id="s-perkm" type="number" value="${p.perKm}"/></div>
+    </div>
+    <div class="frow">
+      <div class="fcol"><label>Rate per waiting minute (₦)</label><input id="s-permin" type="number" value="${p.perMinWaiting}"/></div>
+      <div class="fcol"><label>Minimum fare (₦)</label><input id="s-min" type="number" value="${p.minFare}"/></div>
+    </div>
+    <div class="frow">
+      <div class="fcol"><label>Night surcharge multiplier (e.g. 1.5 = 50% extra)</label><input id="s-night" type="number" step="0.1" value="${p.nightSurcharge}"/></div>
+      <div class="fcol"><label>Airport surcharge flat fee (₦)</label><input id="s-airport" type="number" value="${p.airportFee}"/></div>
+    </div>
+    <label>Platform / Booking fee (₦)</label><input id="s-booking" type="number" value="${p.bookingFee}" style="max-width:200px"/>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px;margin:14px 0">
+      ${[{l:"Short trip (3km)",km:3,w:2,a:false},{l:"Medium trip (10km)",km:10,w:5,a:false},{l:"Long trip (25km)",km:25,w:10,a:false},{l:"Airport (20km)",km:20,w:5,a:true}].map(ex=>{
+        const fare=Math.round(calcFare(ex.km,ex.w,p,false,ex.a));const night=Math.round(calcFare(ex.km,ex.w,p,true,ex.a));
+        return`<div style="background:#111122;border:1px solid #2a2a3d;border-radius:9px;padding:11px 12px"><div style="font-size:11px;color:#64748b;margin-bottom:4px">${ex.l}</div><div style="font-size:16px;font-weight:700;color:#0ea5e9">${fmt(fare)}</div><div style="font-size:10px;color:#f59e0b">🌙 Night: ${fmt(night)}</div></div>`;
+      }).join("")}
+    </div>
+    <div id="s-ok" class="ok"></div>
+    <button class="btnp" onclick="saveSettings()" style="width:100%;padding:12px;font-size:14px">💾 Save Settings</button>
+  </div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: STAFF ───
+// ════════════════════════════════════════════════════
+function renderStaff(){
+  if(!isAdmin())return`<div class="empty">Admin access required.</div>`;
+  return`
+  <div class="pg-title">Staff Management</div>
+  <div style="font-size:13px;color:#64748b;margin-bottom:14px">Create accounts in Firebase Console → Authentication → Add user, then assign roles below.</div>
+  <div class="tblw" style="margin-bottom:14px"><table>
+    <thead><tr><th>Staff member</th><th>Email</th><th>Role</th><th>Change role</th></tr></thead>
+    <tbody>
+      ${S.staff.length===0?`<tr><td colspan="4" class="empty">No staff yet.</td></tr>`:""}
+      ${S.staff.map(s=>`<tr>
+        <td><div style="display:flex;align-items:center;gap:8px">${av(s.name||s.email,28)}<span style="font-weight:500">${esc(s.name||s.email.split("@")[0])}${s._id===S.user.uid?`<span style="font-size:9px;color:#475569"> (you)</span>`:""}</span></div></td>
+        <td style="font-size:11px;color:#64748b">${esc(s.email)}</td>
+        <td><span class="badge" style="background:rgba(124,58,237,.2);color:#9d65f5;border:1px solid rgba(124,58,237,.3);text-transform:capitalize">${esc(s.role||"staff")}</span></td>
+        <td>${s._id!==S.user.uid?`<div style="display:flex;gap:5px;flex-wrap:wrap">${ROLES.map(r=>`<button class="btn" style="font-size:10px;padding:4px 8px;text-transform:capitalize;${s.role===r?"border-color:#7c3aed;color:#9d65f5":""}" onclick="updateRole('${s._id}','${r}')">${r}</button>`).join("")}</div>`:`<span style="font-size:11px;color:#475569">Own account</span>`}</td>
+      </tr>`).join("")}
+    </tbody>
+  </table></div>
+  <div class="card"><div class="card-title">Role Permissions</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px">
+      ${[{r:"admin",c:"#22c55e",p:["All features","Both modes","Manage staff","Settings","Audit log"]},{r:"manager",c:"#f59e0b",p:["Property bookings","Transport rides","Reports","WhatsApp","Paystack"]},{r:"staff",c:"#9d65f5",p:["View bookings","View rides","Dashboard","Calendar"]},{r:"driver",c:"#38bdf8",p:["Transport mode only","GPS tracking","Own rides","Dashboard"]}].map(x=>`
+      <div style="background:#111122;border:1px solid ${x.c}33;border-radius:8px;padding:11px 13px">
+        <span class="badge" style="background:${x.c}22;color:${x.c};border:1px solid ${x.c}44;text-transform:capitalize">${x.r}</span>
+        <ul style="margin-top:7px;padding-left:14px;font-size:11px;color:#64748b;line-height:1.9">${x.p.map(p=>`<li>${p}</li>`).join("")}</ul>
+      </div>`).join("")}
+    </div>
+  </div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: AUDIT ───
+// ════════════════════════════════════════════════════
+function renderAudit(){
+  if(!isAdmin())return`<div class="empty">Admin access required.</div>`;
+  return`
+  <div class="pg-title">Audit Log</div>
+  <div style="font-size:13px;color:#64748b;margin-bottom:14px">Every login and logout is automatically recorded.</div>
+  <div class="tblw"><table>
+    <thead><tr><th>User</th><th>Action</th><th>Date & Time</th><th>Device</th></tr></thead>
+    <tbody>
+      ${S.auditLog.length===0?`<tr><td colspan="4" class="empty">No records yet.</td></tr>`:""}
+      ${S.auditLog.map(l=>`<tr>
+        <td style="color:#9d65f5;font-size:11px">${esc(l.email)}</td>
+        <td><span class="badge" style="background:${l.action==="LOGIN"?"#1a1040":"#2d0d0d"};color:${l.action==="LOGIN"?"#9d65f5":"#ef4444"}">${l.action}</span></td>
+        <td style="color:#64748b;font-size:11px">${l.timestamp?.toDate?.()?.toLocaleString()||"—"}</td>
+        <td style="color:#475569;font-size:10px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((l.device||"—").slice(0,60))}</td>
+      </tr>`).join("")}
+    </tbody>
+  </table></div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── RENDER: MODALS ───
+// ════════════════════════════════════════════════════
+function renderModal(){
+  if(!S.sel)return"";
+  const s=S.sel;
+  const isRide=s.pickup!==undefined;
+  const isDriver=s.plate!==undefined&&s.vehicle!==undefined&&!isRide;
+
+  // ── DRIVER MODAL ──
+  if(isDriver){
+    return`<div class="modal-bg" onclick="closeSel()"><div class="modal-box" onclick="event.stopPropagation()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:15px;font-weight:600">Driver Profile</div>
+        <div style="display:flex;gap:7px">${isAdmin()?`<button class="btnd" onclick="deleteDriver('${s._id}')">Delete</button>`:""}
+        <button class="btn" onclick="closeSel()">✕</button></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        ${av(s.name,46,"#0d1f36","#0ea5e944","#38bdf8")}
+        <div><div style="font-size:16px;font-weight:600">${esc(s.name)}</div><div style="font-size:12px;color:#64748b">${esc(s.phone||"—")}</div></div>
+        ${drvBadge(s.status||"Offline")}
+      </div>
+      ${DR("Vehicle",esc(s.vehicle||"—"))}${DR("Plate",`<span style="color:#0ea5e9;font-weight:500">${esc(s.plate||"—")}</span>`)}
+      ${DR("Color",esc(s.color||"—"))}${DR("License",esc(s.license||"—"))}
+      ${DR("Total rides",`<span style="color:#38bdf8;font-weight:500">${s.totalRides||0}</span>`)}
+      ${DR("Total earnings",`<span style="color:#22c55e;font-weight:500">${fmt(s.totalEarnings||0)}</span>`)}
+      <div style="margin-top:14px"><div style="font-size:12px;color:#64748b;margin-bottom:7px">Update status</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${DRIVER_STATUSES.map(st=>`<button class="btn" style="${(s.status||"Offline")===st?"border-color:#0ea5e9;color:#0ea5e9;font-weight:500":""}" onclick="updateDriverStatus('${s._id}','${st}');S.sel={...S.sel,status:'${st}';render()}">${st}</button>`).join("")}
+        </div>
+      </div>
+      ${s.phone?`<button class="btn-wa" style="margin-top:12px" onclick="window.open('https://wa.me/${fmtWA(s.phone)}','_blank')">💬 WhatsApp ${esc(s.name.split(" ")[0])}</button>`:""}
+    </div></div>`;
+  }
+
+  // ── RIDE MODAL ──
+  if(isRide){
+    const fare=s.fare?fmt(s.fare):s.estimatedFare?`~${fmt(s.estimatedFare)} (est.)`:"-";
+    const phone=fmtWA(s.phone||"");
+    return`<div class="modal-bg" onclick="closeSel()"><div class="modal-box" onclick="event.stopPropagation()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:15px;font-weight:600">Ride Details</div>
+        <div style="display:flex;gap:7px">${isAdmin()?`<button class="btnd" onclick="setDelId('${s._id}')">Delete</button>`:""}
+        <button class="btn" onclick="closeSel()">✕</button></div>
+      </div>
+      ${DR("Passenger",`<strong>${esc(s.passenger)}</strong>`)}
+      ${DR("Phone",esc(s.phone||"—"))}
+      ${DR("Pickup",esc(s.pickup||"—"))}
+      ${DR("Dropoff",esc(s.dropoff||"—"))}
+      ${DR("Date & Time",`${s.date||"—"} ${s.time?fmtT(s.time):""}`)}
+      ${DR("Driver",esc(s.driverName||"—"))}
+      ${DR("Vehicle",`${esc(s.vehicle||"—")} · <span style="color:#0ea5e9">${esc(s.plate||"—")}</span>`)}
+      ${DR("Distance",s.distanceKm?`${s.distanceKm.toFixed(1)} km`:"Not completed yet")}
+      ${DR("Fare",`<strong style="color:#22c55e">${fare}</strong>${s.isNight?` <span style="color:#f59e0b;font-size:10px">🌙 night</span>`:""}${s.isAirport?` <span style="color:#38bdf8;font-size:10px">✈️ airport</span>`:""}`)}
+      ${DR("Status",rideBadge(s.status))}
+      ${DR("Payment",payBadge(s.paymentStatus||"Unpaid"))}
+      ${s.notes?DR("Notes",esc(s.notes)):""}
+      ${s.createdBy?DR("Created by",`<span style="color:#64748b;font-size:11px">${esc(s.createdBy)}</span>`):""}
+      ${isMgr()&&s.status==="Pending"?`<div style="margin-top:14px;display:flex;gap:8px">
+        <button class="btn-grn" style="flex:1;justify-content:center;display:flex;align-items:center;gap:6px;padding:11px" onclick="startRide('${s._id}')">🚗 Start Ride</button>
+        <button class="btn-red" style="padding:11px" onclick="cancelRide('${s._id}')">❌</button>
+      </div>`:""}
+      ${isMgr()&&s.status==="Active"?`<div style="margin-top:14px;display:flex;gap:8px">
+        <button class="btn-grn" style="flex:1;justify-content:center;display:flex;align-items:center;gap:6px;padding:11px" onclick="completeRide('${s._id}')">✅ Complete Ride</button>
+        <button class="btn-red" style="padding:11px" onclick="cancelRide('${s._id}')">❌</button>
+      </div>`:""}
+      ${phone.length>=10?`<button class="btn-wa" style="margin-top:10px" onclick="window.open('https://wa.me/${phone}?text=${encodeURIComponent(`Ride update: ${s.status}. Driver: ${s.driverName||"TBA"}. Plate: ${s.plate||"TBA"}`)}','_blank')">💬 Send WhatsApp Update</button>`:""}
+    </div></div>`;
+  }
+
+  // ── BOOKING MODAL ──
+  const u=getUnit(s.unitId);const c=u?propClr(u.colorIdx||0):PROP_CLRS[0];
+  const total=nts(s.checkIn,s.checkOut)*(u?.price||0);
+  if(S.editMode&&S.editForm){
+    const f=S.editForm;
+    return`<div class="modal-bg" onclick="closeSel()"><div class="modal-box" onclick="event.stopPropagation()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:15px;font-weight:600">Edit Booking</div>
+        <button class="btn" onclick="S.editMode=false;render()">Cancel</button>
+      </div>
+      <div class="frow"><div class="fcol"><label>Guest name</label><input value="${esc(f.guest)}" oninput="updateEF('guest',this.value)"/></div><div class="fcol"><label>Email</label><input value="${esc(f.email||"")}" oninput="updateEF('email',this.value)"/></div></div>
+      <div class="frow"><div class="fcol"><label>Phone</label><input value="${esc(f.phone||"")}" oninput="updateEF('phone',this.value)"/></div><div class="fcol"><label>Unit</label><select onchange="updateEF('unitId',this.value)">${allUnits().map(u=>`<option value="${u.id}" ${u.id===f.unitId?"selected":""}>${esc(u.name)}</option>`).join("")}</select></div></div>
+      <div class="frow"><div class="fcol"><label>Check-in</label><input type="date" value="${f.checkIn}" oninput="updateEF('checkIn',this.value)"/></div><div class="fcol"><label>Check-out</label><input type="date" value="${f.checkOut}" oninput="updateEF('checkOut',this.value)"/></div></div>
+      <div class="frow"><div class="fcol"><label>Status</label><select onchange="updateEF('status',this.value)">${BOOK_STATUSES.map(s=>`<option ${s===f.status?"selected":""}>${s}</option>`).join("")}</select></div><div class="fcol"><label>Payment</label><select onchange="updateEF('payment',this.value)">${["Paid","Partial","Unpaid"].map(s=>`<option ${s===f.payment?"selected":""}>${s}</option>`).join("")}</select></div></div>
+      <label>Notes</label><textarea oninput="updateEF('notes',this.value)">${esc(f.notes||"")}</textarea>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btnp" onclick="saveEditBooking()">Save Changes</button>
+        <button class="btn" onclick="S.editMode=false;render()">Cancel</button>
+      </div>
+    </div></div>`;
+  }
+  return`<div class="modal-bg" onclick="closeSel()"><div class="modal-box" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:15px;font-weight:600">Booking Details</div>
+      <div style="display:flex;gap:7px">
+        ${isMgr()?`<button class="btn" onclick="openEdit()">Edit</button>`:""}
+        ${isAdmin()?`<button class="btnd" onclick="setDelId('${s._id}')">Delete</button>`:""}
+        <button class="btn" onclick="closeSel()">✕</button>
+      </div>
+    </div>
+    ${DR("Guest",`<strong>${esc(s.guest)}</strong>`)}
+    ${DR("Email",esc(s.email||"—"))}${DR("Phone",esc(s.phone||"—"))}
+    ${DR("Unit",`<span class="badge" style="background:${c.b};color:${c.c};border:1px solid ${c.c}33">${esc(u?.name||"—")}</span>`)}
+    ${DR("Check-in",`${s.checkIn}${s.checkInTime?` <span style="color:#64748b;font-size:11px">at ${fmtT(s.checkInTime)}</span>`:""}`)}
+    ${DR("Check-out",`${s.checkOut}${s.checkOutTime?` <span style="color:#64748b;font-size:11px">at ${fmtT(s.checkOutTime)}</span>`:""}`)}
+    ${DR("Nights",nts(s.checkIn,s.checkOut))}
+    ${DR("Total",`<strong style="color:#22c55e">${fmt(total)}</strong>`)}
+    ${DR("Status",bookBadge(s.status))}
+    ${DR("Payment",payBadge(s.payment))}
+    ${s.paystackRef?DR("Pay Ref",`<span style="color:#64748b;font-size:11px">${esc(s.paystackRef)}</span>`):""}
+    ${s.notes?DR("Notes",esc(s.notes)):""}
+    ${s.createdBy?DR("Created by",`<span style="color:#64748b;font-size:11px">${esc(s.createdBy)}</span>`):""}
+    ${isMgr()?`
+    <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+      ${s.phone?`<button class="btn-wa" onclick="window.open('https://wa.me/${fmtWA(s.phone)}?text=${encodeURIComponent(`Hello ${s.guest}! Your booking at ${curProp()?.name||""} is ${s.status}. Check-in: ${s.checkIn}. Total: ₦${total.toLocaleString()}. Thank you!`)}','_blank')">💬 Send WhatsApp</button>`:""}
+      ${s.payment!=="Paid"?`<button class="btn-grn" onclick="openPaystack('${s._id}')" style="justify-content:center;display:flex;align-items:center;gap:7px;padding:11px">💳 Collect Payment via Paystack</button>`:`<div style="background:#0d2d1a;border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:11px;text-align:center;font-size:13px;color:#22c55e">✓ Payment fully received</div>`}
+    </div>
+    <div style="margin-top:14px"><div style="font-size:12px;color:#64748b;margin-bottom:7px">Quick status update</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${BOOK_STATUSES.map(st=>`<button class="btn" style="${s.status===st?"border-color:#7c3aed;color:#9d65f5;font-weight:500":""}" onclick="quickBookStatus('${s._id}','${st}')">${st}</button>`).join("")}
+      </div>
+    </div>`:""}
+  </div></div>`;}
+
+function renderDelConfirm(){
+  if(!S.delId)return"";
+  const isRide=S.rides.find(r=>r._id===S.delId);
+  return`<div class="modal-bg" onclick="clearDel()"><div class="modal-box" style="max-width:330px" onclick="event.stopPropagation()">
+    <div style="font-weight:600;margin-bottom:10px;font-size:16px">Delete this ${isRide?"ride":"booking"}?</div>
+    <div style="font-size:13px;color:#64748b;margin-bottom:18px">This is permanent and cannot be undone.</div>
+    <div style="display:flex;gap:8px">
+      <button class="btnp" style="background:#ef4444" onclick="${isRide?`deleteRide('${S.delId}')`:`deleteBooking('${S.delId}')`}">Yes, delete</button>
+      <button class="btn" onclick="clearDel()">Cancel</button>
+    </div>
+  </div></div>`;}
+
+// ════════════════════════════════════════════════════
+//  ─── MAIN RENDER ───
+// ════════════════════════════════════════════════════
+function render(){
+  const app=document.getElementById("app");if(!app)return;
+  if(S.user===null){app.innerHTML=renderLogin();return;}
+  if(!S.user||!S.profile){app.innerHTML=`<div class="splash"><p>Loading ApartBook Pro…</p></div>`;return;}
+
+  const isProp=S.mode==="property";
+  const PROP_VIEWS={
+    Dashboard:renderPropDashboard, Properties:renderProperties,
+    "New Booking":renderNewBooking, Bookings:renderBookings,
+    Customers:renderCustomers, Calendar:renderCalendar,
+    Reports:renderPropReports, Staff:renderStaff, Audit:renderAudit,
+  };
+  const TRAN_VIEWS={
+    Dashboard:renderTransDashboard, "New Ride":renderNewRide,
+    "Live Map":renderLiveMap, Drivers:renderDrivers,
+    Rides:renderRides, Reports:renderTransReports,
+    Settings:renderSettings, Staff:renderStaff, Audit:renderAudit,
+  };
+  const views=isProp?PROP_VIEWS:TRAN_VIEWS;
+  const content=(views[S.tab]||views.Dashboard)();
+
+  app.innerHTML=`
+    ${renderHeader()}
+    <div class="main">${content}</div>
+    ${S.sel&&!S.delId?renderModal():""}
+    ${S.delId?renderDelConfirm():""}
+    <a class="wa-float" href="https://wa.me/${SUPPORT_WA}" target="_blank" title="Support">💬</a>`;
+
+  if(S.tab==="Live Map")setTimeout(()=>initMap(),60);
+}
+
+// ════════════════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════════════════
+auth.onAuthStateChanged(user=>{
+  S.user=user||null;
+  if(user){
+    loadProfile();loadPricing();
+    loadProperties();loadDrivers();loadRides();
+  }else{
+    S.profile=null;S.rides=[];S.drivers=[];S.bookings=[];S.properties=[];
+    if(bkUnsub){bkUnsub();bkUnsub=null;}
+    if(rideUnsub){rideUnsub();rideUnsub=null;}
+    auditUnsub=null;staffUnsub=null;
+    document.body.className="";
+  }
+  render();
+});
+
+render();
+</script>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
+</body>
+</html>
