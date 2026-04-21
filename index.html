@@ -1589,11 +1589,11 @@ function renderModal(){
       </div>
       ${DR("Vehicle",esc(s.vehicle||"—"))}${DR("Plate",`<span style="color:#0ea5e9;font-weight:500">${esc(s.plate||"—")}</span>`)}
       ${DR("Color",esc(s.color||"—"))}${DR("License",esc(s.license||"—"))}
-      ${DR("Total rides",`<span style="color:#38bdf8;font-weight:500">${s.totalRides||0}</span>`)}
+                ${DR("Total rides",`<span style="color:#38bdf8;font-weight:500">${s.totalRides||0}</span>`)}
       ${DR("Total earnings",`<span style="color:#22c55e;font-weight:500">${fmt(s.totalEarnings||0)}</span>`)}
       <div style="margin-top:14px"><div style="font-size:12px;color:#64748b;margin-bottom:7px">Update status</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          ${DRIVER_STATUSES.map(st=>`<button class="btn" style="${(s.status||"Offline")===st?"border-color:#0ea5e9;color:#0ea5e9;font-weight:500":""}" onclick="updateDriverStatus('${s._id}','${st}');S.sel={...S.sel,status:'${st}';render()}">${st}</button>`).join("")}
+          ${DRIVER_STATUSES.map(st=>`<button class="btn" style="${(s.status||"Offline")===st?"border-color:#0ea5e9;color:#0ea5e9;font-weight:500":""}" onclick="updateDriverStatus('${s._id}','${st}')">${st}</button>`).join("")}
         </div>
       </div>
       ${s.phone?`<button class="btn-wa" style="margin-top:12px" onclick="window.open('https://wa.me/${fmtWA(s.phone)}','_blank')">💬 WhatsApp ${esc(s.name.split(" ")[0])}</button>`:""}
