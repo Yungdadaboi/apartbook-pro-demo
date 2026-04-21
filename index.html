@@ -142,17 +142,17 @@ tbody tr:hover td{background:#111122;cursor:pointer}
 <script src="https://js.paystack.co/v1/inline.js"></script>
 
 <script>
-// ═══════════════════════════════════════════
-//  FIREBASE CONFIG
-// ═══════════════════════════════════════════
+// ════════════════════════════════════════════════════
+//  FIREBASE CONFIG — PASTE YOUR VALUES HERE
+// ════════════════════════════════════════════════════
 firebase.initializeApp({
-  apiKey:            "AIzaSyD2phMOsFSsFANPbZT2KVkfXKskg_yrbi0",
-  authDomain:        "apartbook-transport-demo.firebaseapp.com",
-  projectId:         "apartbook-transport-demo",
-  storageBucket:     "apartbook-transport-demo.firebasestorage.app",
-  messagingSenderId: "4140893337370",
-  appId:             "1:4140893337370:web:8bd0f06bf9a2bd82404fa3",
-  databaseURL:       "https://apartbook-transport-demo-default-rtdb.europe-west1.firebasedatabase.app"
+  apiKey:            "REPLACE_WITH_YOUR_API_KEY",
+  authDomain:        "REPLACE_WITH_YOUR_AUTH_DOMAIN",
+  projectId:         "REPLACE_WITH_YOUR_PROJECT_ID",
+  storageBucket:     "REPLACE_WITH_YOUR_STORAGE_BUCKET",
+  messagingSenderId: "REPLACE_WITH_YOUR_SENDER_ID",
+  appId:             "REPLACE_WITH_YOUR_APP_ID",
+  databaseURL:       "REPLACE_WITH_YOUR_DATABASE_URL"
 });
 
 // PAYSTACK KEY
@@ -693,24 +693,44 @@ window.generatePDF=function(mode){
 // ════════════════════════════════════════════════════
 //  LIVE MAP
 // ════════════════════════════════════════════════════
-let leafMap=null,mapMarkers={};
+let leafMap=null,mapMarkers={},rtdbMapListener=null;
+
+function destroyMap(){
+  // remove rtdb listener
+  if(rtdbMapListener){rtdb.ref("drivers_live").off("value",rtdbMapListener);rtdbMapListener=null;}
+  // remove all markers
+  Object.values(mapMarkers).forEach(m=>{try{if(leafMap)leafMap.removeLayer(m);}catch(_){}});
+  mapMarkers={};
+  // fully destroy leaflet instance so it can be recreated fresh
+  if(leafMap){try{leafMap.remove();}catch(_){}leafMap=null;}
+}
 
 function initMap(){
-  const el=document.getElementById("live-map");if(!el)return;
-  if(leafMap){leafMap.invalidateSize();return;}
-  leafMap=L.map("live-map").setView([6.5244,3.3792],12);
+  const el=document.getElementById("live-map");
+  if(!el)return;
+  // always destroy first to avoid "container already initialised" error
+  destroyMap();
+  leafMap=L.map("live-map",{zoomControl:true}).setView([6.5244,3.3792],12);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap",maxZoom:19}).addTo(leafMap);
-  rtdb.ref("drivers_live").on("value",snap=>{
-    Object.values(mapMarkers).forEach(m=>{try{leafMap.removeLayer(m);}catch(_){}});
+  // force correct size after DOM settles
+  setTimeout(()=>{if(leafMap)leafMap.invalidateSize();},200);
+  // live driver tracking
+  rtdbMapListener=rtdb.ref("drivers_live").on("value",snap=>{
+    Object.values(mapMarkers).forEach(m=>{try{if(leafMap)leafMap.removeLayer(m);}catch(_){}});
     mapMarkers={};
     const data=snap.val()||{};
     Object.entries(data).forEach(([uid,loc])=>{
-      if(!loc.lat||!loc.lng)return;
+      if(!loc.lat||!loc.lng||!leafMap)return;
       const icon=L.divIcon({html:`<div style="background:#0ea5e9;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px rgba(14,165,233,.8)"></div>`,iconSize:[14,14],className:""});
-      mapMarkers[uid]=L.marker([loc.lat,loc.lng],{icon}).bindPopup(`🚗 ${loc.name||"Driver"}`).addTo(leafMap);
+      mapMarkers[uid]=L.marker([loc.lat,loc.lng],{icon}).bindPopup(`🚗 ${esc(loc.name||"Driver")}`).addTo(leafMap);
     });
   });
-  if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{if(leafMap)leafMap.setView([p.coords.latitude,p.coords.longitude],13);},()=>{});
+  // center on user location
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(p=>{
+      if(leafMap)leafMap.setView([p.coords.latitude,p.coords.longitude],13);
+    },()=>{});
+  }
 }
 
 // ════════════════════════════════════════════════════
@@ -723,11 +743,13 @@ window.setMode=function(mode){
 };
 
 window.goTo=function(tab){
+  // destroy map when leaving Live Map tab
+  if(S.tab==="Live Map"&&tab!=="Live Map")destroyMap();
   S.tab=tab;S.sel=null;S.editMode=false;
   if(tab==="Audit"&&!auditUnsub)auditUnsub=db.collection("audit_log").orderBy("timestamp","desc").limit(150).onSnapshot(snap=>{S.auditLog=snap.docs.map(d=>({...d.data(),_id:d.id}));render();});
   if(tab==="Staff"&&!staffUnsub)staffUnsub=db.collection("users").onSnapshot(snap=>{S.staff=snap.docs.map(d=>({...d.data(),_id:d.id}));render();});
   render();window.scrollTo({top:0,behavior:"smooth"});
-  if(tab==="Live Map")setTimeout(()=>initMap(),80);
+  if(tab==="Live Map")setTimeout(()=>initMap(),100);
 };
 
 window.openSel=function(id){
@@ -1238,8 +1260,20 @@ function renderNewRide(){
       <div class="fcol"><label>Phone (WhatsApp) 📱</label><input id="r-phone" placeholder="0801-234-5678"/></div>
     </div>
     <div class="frow">
-      <div class="fcol"><label>Pickup location *</label><input id="r-pickup" placeholder="e.g. Lekki Phase 1 Gate"/></div>
-      <div class="fcol"><label>Dropoff location *</label><input id="r-dropoff" placeholder="e.g. Murtala Airport"/></div>
+      <div class="fcol" style="position:relative">
+        <label>Pickup location *</label>
+        <input id="r-pickup" placeholder="e.g. Lekki Phase 1 Gate" autocomplete="off"
+          oninput="locationSearch('r-pickup','r-pickup-dd')"
+          onblur="hideDropdown('r-pickup-dd')"/>
+        <div id="r-pickup-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:#0f0f1c;border:1px solid #2a2a3d;border-radius:0 0 10px 10px;z-index:200;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.6)"></div>
+      </div>
+      <div class="fcol" style="position:relative">
+        <label>Dropoff location *</label>
+        <input id="r-dropoff" placeholder="e.g. Murtala Airport" autocomplete="off"
+          oninput="locationSearch('r-dropoff','r-dropoff-dd')"
+          onblur="hideDropdown('r-dropoff-dd')"/>
+        <div id="r-dropoff-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:#0f0f1c;border:1px solid #2a2a3d;border-radius:0 0 10px 10px;z-index:200;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.6)"></div>
+      </div>
     </div>
     <div class="frow">
       <div class="fcol"><label>Date *</label><input id="r-date" type="date" value="${tod()}"/></div>
