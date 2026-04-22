@@ -109,13 +109,13 @@ tbody tr:hover td{background:#111122;cursor:pointer}
 <script>
 // ── FIREBASE CONFIG ──
 firebase.initializeApp({
-  apiKey:            "AIzaSyD2phMOsFSsFANPbZT2KVkfXKskg_yrbi0",
-  authDomain:        "apartbook-transport-demo.firebaseapp.com",
-  projectId:         "apartbook-transport-demo",
-  storageBucket:     "apartbook-transport-demo.firebasestorage.app",
-  messagingSenderId: "4140893337370",
-  appId:             "1:4140893337370:web:8bd0f06bf9a2bd82404fa3",
-  databaseURL:       "https://apartbook-transport-demo-default-rtdb.europe-west1.firebasedatabase.app"
+  apiKey:            "REPLACE_WITH_YOUR_API_KEY",
+  authDomain:        "REPLACE_WITH_YOUR_AUTH_DOMAIN",
+  projectId:         "REPLACE_WITH_YOUR_PROJECT_ID",
+  storageBucket:     "REPLACE_WITH_YOUR_STORAGE_BUCKET",
+  messagingSenderId: "REPLACE_WITH_YOUR_SENDER_ID",
+  appId:             "REPLACE_WITH_YOUR_APP_ID",
+  databaseURL:       "REPLACE_WITH_YOUR_DATABASE_URL"
 });
 const PAYSTACK_KEY="REPLACE_WITH_YOUR_PAYSTACK_KEY";
 const SUPPORT_WA="2348000000000";
@@ -602,7 +602,7 @@ function rLogin(){return'<div class="lw"><div class="lg"></div><div style="width
 function rHeader(){
   const ip=S.mode==="property";
   const PT=[{n:"Dashboard",s:true},{n:"Properties",s:isAdmin()},{n:"New Booking",s:isMgr()},{n:"Bookings",s:true},{n:"Customers",s:isMgr()},{n:"Calendar",s:true},{n:"Reports",s:isMgr()},{n:"Staff",s:isAdmin()},{n:"Audit",s:isAdmin()}].filter(t=>t.s);
-  const TT=[{n:"Dashboard",s:true},{n:"New Ride",s:isMgr()},{n:"Live Map",s:true},{n:"Drivers",s:isMgr()},{n:"Rides",s:true},{n:"Reports",s:isMgr()},{n:"Settings",s:isAdmin()},{n:"Staff",s:isAdmin()},{n:"Audit",s:isAdmin()}].filter(t=>t.s&&!(isDrv()&&["Staff","Audit","Drivers"].includes(t.n)));
+  const TT=[{n:"Dashboard",s:true},{n:"New Ride",s:isMgr()},{n:"Live Map",s:!isDrv()},{n:"Drivers",s:isMgr()},{n:"Rides",s:true},{n:"Reports",s:isMgr()},{n:"Settings",s:isAdmin()},{n:"Staff",s:isAdmin()},{n:"Audit",s:isAdmin()}].filter(t=>t.s);
   const tabs=ip?PT:TT;
   const ar=S.rides.filter(r=>r.status==="Active").length;
   const ps=S.props.length>1?'<select onchange="selProp(this.value)" style="background:#111122;border:1px solid #2a2a3d;border-radius:7px;color:#e2e8f0;padding:3px 6px;font-size:10px;outline:none;max-width:90px;flex-shrink:0">'+S.props.map(p=>'<option value="'+p._id+'" '+(p._id===S.selProp?"selected":"")+'>'+esc(p.name)+'</option>').join("")+'</select>':curProp()?'<span style="font-size:10px;color:#64748b;padding:3px 7px;background:#111122;border:1px solid #1e1e2e;border-radius:6px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0">'+esc(curProp().name)+'</span>':"";
@@ -639,6 +639,157 @@ function rPropDash(){
   +(coT.length>0?'<div class="card"><div class="ct">📤 Today\'s Check-outs ('+coT.length+')</div>'+coT.map(b=>{const u=gUnit(b.unitId);const c=u?pc(u.colorIdx||0):PC[0];return'<div class="li" onclick="openSel(\''+b._id+'\');goTo(\'Bookings\')">'+av(b.guest,34,c.b,c.c+"44",c.c)+'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">'+esc(b.guest)+'</div><div style="font-size:11px;color:#64748b">'+esc(u?.name||"—")+" · stayed "+nts(b.checkIn,b.checkOut)+' nights</div><div style="font-size:11px;color:#60a5fa;margin-top:2px">⏰ '+(b.checkOutTime?ftm(b.checkOutTime):"Time not set")+'</div></div>'+pb(b.payment)+'</div>';}).join("")+'</div>':"")
   +'<div class="card"><div class="ct">🗓 Upcoming Confirmed Check-ins</div>'+(up.length===0?'<div class="em">No upcoming confirmed check-ins.</div>':up.map(b=>{const u=gUnit(b.unitId);const c=u?pc(u.colorIdx||0):PC[0];return'<div class="li" onclick="openSel(\''+b._id+'\');goTo(\'Bookings\')">'+av(b.guest,32,c.b,c.c+"44",c.c)+'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+esc(b.guest)+'</div><div style="font-size:11px;color:#64748b">'+esc(u?.name||"—")+" · "+b.checkIn+" → "+b.checkOut+" · "+nts(b.checkIn,b.checkOut)+' nights</div>'+(b.checkInTime?'<div style="font-size:11px;color:#9d65f5">⏰ '+ftm(b.checkInTime)+'</div>':"")+'</div>'+bb(b.status)+'</div>';}).join(""))+'</div>';
 }
+
+// ── DRIVER DASHBOARD ──
+function rDriverDash(){
+  const t=tod();const now=new Date();
+  const myRides=S.rides.filter(r=>r.driverId===S.user.uid||r.driverName===S.profile?.name);
+  const activeRide=myRides.find(r=>r.status==="Active");
+  const pendingRide=myRides.find(r=>r.status==="Pending");
+  const myDriver=S.drivers.find(d=>d.phone===S.profile?.phone||d.name===S.profile?.name)||null;
+  const todayRides=myRides.filter(r=>r.date===t||r.created?.toDate?.()?.toISOString()?.startsWith(t));
+  const todayEarned=todayRides.filter(r=>r.status==="Completed").reduce((s,r)=>s+(r.fare||0),0);
+  const totalEarned=myRides.filter(r=>r.status==="Completed").reduce((s,r)=>s+(r.fare||0),0);
+  const curRide=activeRide||pendingRide;
+
+  return`
+  <div style="max-width:480px;margin:0 auto">
+    <!-- DRIVER GREETING CARD -->
+    <div class="card" style="border-left:3px solid #0ea5e9;background:linear-gradient(135deg,#0c1220,#0d1f36)">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        ${av(S.profile?.name||S.user.email,52,"#0d1f36","#0ea5e9","#38bdf8")}
+        <div>
+          <div style="font-size:16px;font-weight:700">👋 Hello, ${esc((S.profile?.name||S.user.email).split(" ")[0]||"Driver")}!</div>
+          ${myDriver?`<div style="font-size:12px;color:#64748b;margin-top:3px">🚙 ${esc(myDriver.vehicle||"—")} · ${esc(myDriver.plate||"—")}</div>
+          <div style="font-size:11px;color:#64748b">${esc(myDriver.color||"")}${myDriver.color?" · ":""}⭐ ${(myDriver.rating||5).toFixed(1)} rating</div>`
+          :`<div style="font-size:12px;color:#f59e0b;margin-top:3px">⚠️ Driver profile not linked. Contact admin.</div>`}
+        </div>
+      </div>
+      <!-- ONLINE/OFFLINE TOGGLE -->
+      <div style="display:flex;gap:8px">
+        <button onclick="setDrvOnline('online')" style="flex:1;padding:11px;border-radius:9px;border:2px solid ${myDriver?.status==='Online'||myDriver?.status==='On Ride'?'#22c55e':'#2a2a3d'};background:${myDriver?.status==='Online'||myDriver?.status==='On Ride'?'#0d2d1a':'#111122'};color:${myDriver?.status==='Online'||myDriver?.status==='On Ride'?'#22c55e':'#64748b'};font-size:14px;font-weight:700;cursor:pointer">
+          🟢 Go Online
+        </button>
+        <button onclick="setDrvOnline('offline')" style="flex:1;padding:11px;border-radius:9px;border:2px solid ${myDriver?.status==='Offline'?'#ef4444':'#2a2a3d'};background:${myDriver?.status==='Offline'?'#2d0d0d':'#111122'};color:${myDriver?.status==='Offline'?'#ef4444':'#64748b'};font-size:14px;font-weight:700;cursor:pointer">
+          🔴 Go Offline
+        </button>
+      </div>
+    </div>
+
+    <!-- GPS STATUS -->
+    <div class="card" style="border-color:${S.isTracking?'rgba(34,197,94,.5)':'#1e1e2e'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px">
+          ${S.isTracking?'<div class="pu" style="width:12px;height:12px;background:#22c55e;border-radius:50%"></div>':'<div style="width:12px;height:12px;background:#2a2a3d;border-radius:50%"></div>'}
+          <div>
+            <div style="font-size:14px;font-weight:600;color:${S.isTracking?'#22c55e':'#64748b'}">📍 GPS ${S.isTracking?'Active — Location Shared':'Inactive'}</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px">${S.isTracking?'Admin can see your location on the live map':'Tap to start sharing your location'}</div>
+          </div>
+        </div>
+        <button onclick="${S.isTracking?`if(confirm('Stop sharing location?'))stopGPS();render()`:`startGPS('manual-'+Date.now());render()`}"
+          style="padding:9px 16px;border-radius:8px;border:1.5px solid ${S.isTracking?'rgba(239,68,68,.5)':'rgba(34,197,94,.5)'};background:${S.isTracking?'#2d0d0d':'#0d2d1a'};color:${S.isTracking?'#ef4444':'#22c55e'};font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">
+          ${S.isTracking?'⏹ Stop':'▶️ Start'}
+        </button>
+      </div>
+    </div>
+
+    <!-- CURRENT RIDE -->
+    ${curRide?`
+    <div class="card" style="border:2px solid ${activeRide?'#22c55e':'#f59e0b'};background:${activeRide?'#0d2d1a':'#2d1f0d'}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:14px;font-weight:700;color:${activeRide?'#22c55e':'#f59e0b'}">${activeRide?'🚗 Ride In Progress':'⏳ Ride Assigned — Pending'}</div>
+        ${rb(curRide.status)}
+      </div>
+      <div style="background:rgba(0,0,0,.3);border-radius:9px;padding:12px;margin-bottom:12px">
+        <div style="font-size:15px;font-weight:700;margin-bottom:8px">👤 ${esc(curRide.passenger)}</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:5px">📞 ${esc(curRide.phone||"No phone number")}</div>
+        <div style="display:flex;gap:8px;margin-bottom:6px;align-items:flex-start">
+          <div style="flex-shrink:0;width:20px;text-align:center">🟢</div>
+          <div style="font-size:13px;font-weight:500">${esc(curRide.pickup||"—")}</div>
+        </div>
+        <div style="width:1px;height:12px;background:#2a2a3d;margin-left:10px;margin-bottom:6px"></div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <div style="flex-shrink:0;width:20px;text-align:center">🔴</div>
+          <div style="font-size:13px;font-weight:500">${esc(curRide.dropoff||"—")}</div>
+        </div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1);display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
+          <span style="color:#94a3b8">⏰ ${curRide.time?ftm(curRide.time):"—"}</span>
+          ${curRide.estimatedFare?`<span style="color:#22c55e">💰 Est: ${fmt(curRide.estimatedFare)}</span>`:""}
+          ${curRide.isAirport?'<span style="color:#38bdf8">✈️ Airport</span>':""}
+          ${curRide.isNight?'<span style="color:#f59e0b">🌙 Night rate</span>':""}
+        </div>
+      </div>
+      <!-- ACTION BUTTONS -->
+      ${pendingRide&&!activeRide?`
+      <button class="bg" style="width:100%;padding:13px;font-size:15px;font-weight:700;justify-content:center;display:flex;align-items:center;gap:8px" onclick="drvStartRide('${curRide._id}')">
+        🚗 Start This Ride
+      </button>`:""}
+      ${activeRide?`
+      <div style="display:flex;gap:8px">
+        <button class="bg" style="flex:1;padding:13px;font-size:14px;font-weight:700;justify-content:center;display:flex;align-items:center;gap:7px" onclick="completeRide('${curRide._id}')">
+          ✅ Complete Ride
+        </button>
+        ${curRide.phone?`<button onclick="window.open('https://wa.me/${wa(curRide.phone)}','_blank')" style="padding:13px;background:#0a2d1a;border:1.5px solid rgba(37,211,102,.4);border-radius:8px;cursor:pointer;font-size:18px">💬</button>`:""}
+      </div>
+      <button class="br" style="width:100%;padding:10px;margin-top:8px;justify-content:center;display:flex" onclick="cancelRide('${curRide._id}')">❌ Cancel Ride</button>`:""}
+    </div>`:`
+    <div class="card" style="text-align:center;padding:28px">
+      <div style="font-size:36px;margin-bottom:10px">🚦</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px">No Ride Assigned</div>
+      <div style="font-size:13px;color:#64748b">Go online and wait for the dispatcher to assign you a ride.</div>
+    </div>`}
+
+    <!-- TODAY'S STATS -->
+    <div class="card">
+      <div class="ct">📊 My Stats — ${t}</div>
+      <div class="stats" style="margin-bottom:0">
+        <div class="stat" style="border-top:3px solid #0ea5e9"><div class="sl">Rides today</div><div class="sv" style="color:#0ea5e9">${todayRides.length}</div></div>
+        <div class="stat" style="border-top:3px solid #22c55e"><div class="sl">Earned today</div><div class="sv" style="color:#22c55e;font-size:16px">${fmt(todayEarned)}</div></div>
+        <div class="stat" style="border-top:3px solid #9d65f5"><div class="sl">Total rides</div><div class="sv" style="color:#9d65f5">${myRides.length}</div></div>
+        <div class="stat" style="border-top:3px solid #22c55e"><div class="sl">Total earned</div><div class="sv" style="color:#22c55e;font-size:15px">${fmt(totalEarned)}</div></div>
+        <div class="stat wide" style="border-top:3px solid #f59e0b"><div class="sl">Completion rate</div><div class="sv" style="color:#f59e0b">${myRides.length?Math.round(myRides.filter(r=>r.status==="Completed").length/myRides.length*100):0}%</div></div>
+      </div>
+    </div>
+
+    <!-- RECENT RIDES -->
+    <div class="card">
+      <div class="ct">🕐 My Recent Rides</div>
+      ${myRides.slice(0,5).map(r=>`
+      <div class="li">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600">${esc(r.passenger)}</div>
+          <div style="font-size:10px;color:#64748b">${esc(r.pickup||"—")} → ${esc(r.dropoff||"—")}</div>
+          <div style="font-size:10px;color:#64748b">${r.date||""} ${r.time?ftm(r.time):""}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          ${rb(r.status)}
+          ${r.fare?`<div style="font-size:12px;color:#22c55e;font-weight:500;margin-top:3px">${fmt(r.fare)}</div>`:""}
+        </div>
+      </div>`).join("")}
+      ${myRides.length===0?'<div class="em">No rides yet. Wait for dispatcher to assign a ride.</div>':""}
+    </div>
+  </div>`;
+}
+
+window.setDrvOnline=async function(status){
+  const myDriver=S.drivers.find(d=>d.name===S.profile?.name||d.phone===S.profile?.phone);
+  if(!myDriver){alert("Your driver profile is not set up. Ask admin to add you as a driver first.");return;}
+  try{
+    await db.collection("drivers").doc(myDriver._id).update({status:status==="online"?"Online":"Offline"});
+    if(status==="online"&&!S.isTracking)startGPS("online-"+Date.now());
+    if(status==="offline")stopGPS();
+    render();
+  }catch(e){alert("Error: "+e.message);}
+};
+
+window.drvStartRide=async function(id){
+  try{
+    await db.collection("rides").doc(id).update({status:"Active",startedAt:TS(),startTime:nowt(),startDate:tod()});
+    if(S.sel?._id===id)S.sel={...S.sel,status:"Active"};
+    if(!S.isTracking)startGPS(id);
+    render();
+  }catch(e){alert("Error: "+e.message);}
+};
 
 // ── TRANSPORT DASHBOARD ──
 function rTransDash(){
@@ -828,7 +979,7 @@ function render(){
   if(!S.user||!S.profile){app.innerHTML='<div class="sp"><p>Loading ApartBook Pro…</p></div>';return;}
   const ip=S.mode==="property";
   const PV={Dashboard:rPropDash,Properties:rProperties,"New Booking":rNewBooking,Bookings:rBookings,Customers:rCustomers,Calendar:rCalendar,Reports:rPropRep,Staff:rStaff,Audit:rAudit};
-  const TV={Dashboard:rTransDash,"New Ride":rNewRide,"Live Map":rLiveMap,Drivers:rDrivers,Rides:rRides,Reports:rTransRep,Settings:rSettings,Staff:rStaff,Audit:rAudit};
+  const TV={Dashboard:isDrv()?rDriverDash:rTransDash,"New Ride":rNewRide,"Live Map":rLiveMap,Drivers:rDrivers,Rides:rRides,Reports:rTransRep,Settings:rSettings,Staff:rStaff,Audit:rAudit};
   const views=ip?PV:TV;
   app.innerHTML=rHeader()+'<div class="main">'+(views[S.tab]||views.Dashboard)()+'</div>'+(S.sel&&!S.delId?rModal():"")+(S.delId?rDelConfirm():"")+'<a class="waf" href="https://wa.me/'+SUPPORT_WA+'" target="_blank">💬</a>';
   if(S.tab==="Live Map")setTimeout(()=>initMap(),80);
