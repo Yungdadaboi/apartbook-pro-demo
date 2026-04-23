@@ -461,7 +461,7 @@ window.addRide=async function(){
     if(ph.length>=10&&confirm("Send WhatsApp confirmation?"))window.open("https://wa.me/"+ph+"?text="+msg,"_blank");
   }catch(e){se("Error: "+e.message);}
 };
-window.startRide=async function(id){
+window.navTo=function(type,ride){   const addr=type==="pickup"?ride.pickup:ride.dropoff;   if(!addr)return;   window.open("https://www.openstreetmap.org/search?query="+encodeURIComponent(addr),"_blank"); };
   try{
     await db.collection("rides").doc(id).update({status:"Active",startedAt:TS(),startTime:nowt(),startDate:tod()});
     if(S.sel?._id===id)S.sel={...S.sel,status:"Active"};
