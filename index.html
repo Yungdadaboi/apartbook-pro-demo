@@ -265,10 +265,12 @@ let gpsW=null;
 function startGPS(rideId){
   if(!navigator.geolocation){alert("GPS not available.");return;}
   S.isTracking=true;S.trackRide=rideId;
-  gpsW=navigator.geolocation.watchPosition(async pos=>{
+ gpsW=navigator.geolocation.watchPosition(async pos=>{
     try{await rtdb.ref("drivers_live/"+S.user.uid).set({lat:pos.coords.latitude,lng:pos.coords.longitude,speed:pos.coords.speed||0,rideId,timestamp:Date.now(),name:S.profile?.name||S.user.email});}catch(_){}
     render();
-  },{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
+  },
+  err=>{console.warn("GPS error:",err.message);},
+  {enableHighAccuracy:true,maximumAge:3000,timeout:10000});
 }
 function stopGPS(){
   if(gpsW!=null){navigator.geolocation.clearWatch(gpsW);gpsW=null;}
