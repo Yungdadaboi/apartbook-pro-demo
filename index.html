@@ -130,6 +130,8 @@ const MN=["January","February","March","April","May","June","July","August","Sep
 const BS={Confirmed:{bg:"#0d2d1a",c:"#22c55e"},Pending:{bg:"#2d1f0d",c:"#f59e0b"},Cancelled:{bg:"#2d0d0d",c:"#ef4444"},"Checked-out":{bg:"#1a1040",c:"#a78bfa"}};
 const RS={Pending:{bg:"#2d1f0d",c:"#f59e0b"},Active:{bg:"#0d2d1a",c:"#22c55e"},Completed:{bg:"#0d1f36",c:"#38bdf8"},Cancelled:{bg:"#2d0d0d",c:"#ef4444"}};
 const DS={Online:{bg:"#0d2d1a",c:"#22c55e"},Offline:{bg:"#1a1a1a",c:"#64748b"},"On Ride":{bg:"#0d1f36",c:"#38bdf8"}};
+// FIX: Role colors for staff badges
+const RCL={admin:{bg:"#0d2d1a",c:"#22c55e"},manager:{bg:"#2d1a05",c:"#f59e0b"},driver:{bg:"#062730",c:"#0ea5e9"},staff:{bg:"#1a1040",c:"#a78bfa"}};
 const BSTAT=["Confirmed","Pending","Cancelled","Checked-out"];
 const RSTAT=["Pending","Active","Completed","Cancelled"];
 const DSTAT=["Online","Offline","On Ride"];
@@ -171,6 +173,8 @@ const db2=s=>{const c=DS[s]||DS.Offline;return`<span class="bdg" style="backgrou
 const pb=p=>`<span style="color:${p==="Paid"?"#22c55e":p==="Partial"?"#f59e0b":"#ef4444"};font-weight:500;font-size:12px">${esc(p||"Unpaid")}</span>`;
 const av=(n,sz=30,bg="#1a1040",bd="#7c3aed44",cl="#9d65f5")=>`<div class="av" style="width:${sz}px;height:${sz}px;font-size:${sz*.34}px;background:${bg};border:1.5px solid ${bd};color:${cl}">${ini(n)}</div>`;
 const DR=(l,v)=>`<div class="dr"><span class="dl">${l}</span><div style="flex:1">${v}</div></div>`;
+// FIX: Role badge helper with correct colors
+const roleBadge=r=>{const c=RCL[r]||RCL.staff;return`<span class="bdg" style="background:${c.bg};color:${c.c};border:1px solid ${c.c}44;text-transform:capitalize">${esc(r||"staff")}</span>`;};
 
 // ── STATE ──
 const S={
@@ -260,15 +264,19 @@ function loadRides(){
   },()=>{db.collection("rides").get().then(snap=>{S.rides=snap.docs.map(d=>({...d.data(),_id:d.id}));render();});});
 }
 
-// ── GPS ──
+// ── GPS ── FIX: Added error callback to prevent watchPosition error
 let gpsW=null;
 function startGPS(rideId){
   if(!navigator.geolocation){alert("GPS not available.");return;}
   S.isTracking=true;S.trackRide=rideId;
-  gpsW=navigator.geolocation.watchPosition(async pos=>{
-    try{await rtdb.ref("drivers_live/"+S.user.uid).set({lat:pos.coords.latitude,lng:pos.coords.longitude,speed:pos.coords.speed||0,rideId,timestamp:Date.now(),name:S.profile?.name||S.user.email});}catch(_){}
-    render();
-  },{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
+  gpsW=navigator.geolocation.watchPosition(
+    async pos=>{
+      try{await rtdb.ref("drivers_live/"+S.user.uid).set({lat:pos.coords.latitude,lng:pos.coords.longitude,speed:pos.coords.speed||0,rideId,timestamp:Date.now(),name:S.profile?.name||S.user.email});}catch(_){}
+      render();
+    },
+    err=>{console.warn("GPS error:",err.message);},
+    {enableHighAccuracy:true,maximumAge:3000,timeout:10000}
+  );
 }
 function stopGPS(){
   if(gpsW!=null){navigator.geolocation.clearWatch(gpsW);gpsW=null;}
@@ -641,7 +649,7 @@ function rPropDash(){
   +'<div class="card"><div class="ct">🗓 Upcoming Confirmed Check-ins</div>'+(up.length===0?'<div class="em">No upcoming confirmed check-ins.</div>':up.map(b=>{const u=gUnit(b.unitId);const c=u?pc(u.colorIdx||0):PC[0];return'<div class="li" onclick="openSel(\''+b._id+'\');goTo(\'Bookings\')">'+av(b.guest,32,c.b,c.c+"44",c.c)+'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+esc(b.guest)+'</div><div style="font-size:11px;color:#64748b">'+esc(u?.name||"—")+" · "+b.checkIn+" → "+b.checkOut+" · "+nts(b.checkIn,b.checkOut)+' nights</div>'+(b.checkInTime?'<div style="font-size:11px;color:#9d65f5">⏰ '+ftm(b.checkInTime)+'</div>':"")+'</div>'+bb(b.status)+'</div>';}).join(""))+'</div>';
 }
 
-// ── DRIVER DASHBOARD ──
+// ── DRIVER DASHBOARD ── FIX: Added navigation buttons for pickup/dropoff
 function rDriverDash(){
   const t=tod();const now=new Date();
   const myRides=S.rides.filter(r=>r.driverId===S.user.uid||r.driverName===S.profile?.name);
@@ -655,7 +663,6 @@ function rDriverDash(){
 
   return`
   <div style="max-width:480px;margin:0 auto">
-    <!-- DRIVER GREETING CARD -->
     <div class="card" style="border-left:3px solid #0ea5e9;background:linear-gradient(135deg,#0c1220,#0d1f36)">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
         ${av(S.profile?.name||S.user.email,52,"#0d1f36","#0ea5e9","#38bdf8")}
@@ -666,7 +673,6 @@ function rDriverDash(){
           :`<div style="font-size:12px;color:#f59e0b;margin-top:3px">⚠️ Driver profile not linked. Contact admin.</div>`}
         </div>
       </div>
-      <!-- ONLINE/OFFLINE TOGGLE -->
       <div style="display:flex;gap:8px">
         <button onclick="setDrvOnline('online')" style="flex:1;padding:11px;border-radius:9px;border:2px solid ${myDriver?.status==='Online'||myDriver?.status==='On Ride'?'#22c55e':'#2a2a3d'};background:${myDriver?.status==='Online'||myDriver?.status==='On Ride'?'#0d2d1a':'#111122'};color:${myDriver?.status==='Online'||myDriver?.status==='On Ride'?'#22c55e':'#64748b'};font-size:14px;font-weight:700;cursor:pointer">
           🟢 Go Online
@@ -677,7 +683,6 @@ function rDriverDash(){
       </div>
     </div>
 
-    <!-- GPS STATUS -->
     <div class="card" style="border-color:${S.isTracking?'rgba(34,197,94,.5)':'#1e1e2e'}">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
         <div style="display:flex;align-items:center;gap:10px">
@@ -694,7 +699,6 @@ function rDriverDash(){
       </div>
     </div>
 
-    <!-- CURRENT RIDE -->
     ${curRide?`
     <div class="card" style="border:2px solid ${activeRide?'#22c55e':'#f59e0b'};background:${activeRide?'#0d2d1a':'#2d1f0d'}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -720,6 +724,12 @@ function rDriverDash(){
           ${curRide.isNight?'<span style="color:#f59e0b">🌙 Night rate</span>':""}
         </div>
       </div>
+      <!-- FIX: Navigation buttons for driver -->
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <a href="https://www.openstreetmap.org/search?query=${encodeURIComponent(curRide.pickup||'')}" target="_blank" style="flex:1;padding:10px;background:#0d1f36;border:1.5px solid #0ea5e9;border-radius:8px;color:#0ea5e9;font-size:12px;font-weight:600;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:5px">🗺️ Pickup</a>
+        <a href="https://www.openstreetmap.org/search?query=${encodeURIComponent(curRide.dropoff||'')}" target="_blank" style="flex:1;padding:10px;background:#0d2d1a;border:1.5px solid #22c55e;border-radius:8px;color:#22c55e;font-size:12px;font-weight:600;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:5px">🗺️ Dropoff</a>
+      </div>
+      <a href="https://routing.openstreetmap.de/?engine=fossgis_osrm_car&route=${encodeURIComponent(curRide.pickup||'')}%3B${encodeURIComponent(curRide.dropoff||'')}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;padding:11px;background:#1a0d36;border:1.5px solid #a78bfa;border-radius:8px;color:#a78bfa;font-size:13px;font-weight:600;text-decoration:none">🧭 Full Route Directions</a>
       <!-- ACTION BUTTONS -->
       ${pendingRide&&!activeRide?`
       <button class="bg" style="width:100%;padding:13px;font-size:15px;font-weight:700;justify-content:center;display:flex;align-items:center;gap:8px" onclick="drvStartRide('${curRide._id}')">
@@ -740,7 +750,6 @@ function rDriverDash(){
       <div style="font-size:13px;color:#64748b">Go online and wait for the dispatcher to assign you a ride.</div>
     </div>`}
 
-    <!-- TODAY'S STATS -->
     <div class="card">
       <div class="ct">📊 My Stats — ${t}</div>
       <div class="stats" style="margin-bottom:0">
@@ -752,7 +761,6 @@ function rDriverDash(){
       </div>
     </div>
 
-    <!-- RECENT RIDES -->
     <div class="card">
       <div class="ct">🕐 My Recent Rides</div>
       ${myRides.slice(0,5).map(r=>`
@@ -926,11 +934,11 @@ function rSettings(){
   +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px;margin:14px 0">'+[{l:"Short trip (3km)",km:3,w:2,a:false},{l:"Medium (10km)",km:10,w:5,a:false},{l:"Long (25km)",km:25,w:10,a:false},{l:"Airport (20km)",km:20,w:5,a:true}].map(ex=>{const f=Math.round(calcFare(ex.km,ex.w,p,false,ex.a));const n=Math.round(calcFare(ex.km,ex.w,p,true,ex.a));return'<div style="background:#111122;border:1px solid #2a2a3d;border-radius:9px;padding:11px 12px"><div style="font-size:11px;color:#64748b;margin-bottom:4px">'+ex.l+'</div><div style="font-size:16px;font-weight:700;color:#0ea5e9">'+fmt(f)+'</div><div style="font-size:10px;color:#f59e0b">🌙 Night: '+fmt(n)+'</div></div>';}).join("")+'</div><div id="s-ok" class="ok"></div><button class="btnp" onclick="saveSett()" style="width:100%;padding:12px;font-size:14px">💾 Save Settings</button></div>';
 }
 
-// ── STAFF ──
+// ── STAFF ── FIX: Role badge colors now correct
 function rStaff(){
   if(!isAdmin())return'<div class="em">Admin access required.</div>';
-  return'<div class="pg">Staff Management</div><div style="font-size:13px;color:#64748b;margin-bottom:14px">Create accounts in Firebase Console → Authentication → Add user, then assign roles below.</div><div class="tw" style="margin-bottom:14px"><table><thead><tr><th>Staff member</th><th>Email</th><th>Role</th><th>Change role</th></tr></thead><tbody>'+(S.staff.length===0?'<tr><td colspan="4" class="em">No staff yet.</td></tr>':S.staff.map(s=>'<tr><td><div style="display:flex;align-items:center;gap:8px">'+av(s.name||s.email,28)+'<span style="font-weight:500">'+esc(s.name||s.email.split("@")[0])+(s._id===S.user.uid?'<span style="font-size:9px;color:#475569"> (you)</span>':"")+'</span></div></td><td style="font-size:11px;color:#64748b">'+esc(s.email)+'</td><td><span class="bdg" style="background:rgba(124,58,237,.2);color:#9d65f5;border:1px solid rgba(124,58,237,.3);text-transform:capitalize">'+esc(s.role||"staff")+'</span></td><td>'+(s._id!==S.user.uid?'<div style="display:flex;gap:5px;flex-wrap:wrap">'+ROLES.map(r=>'<button class="btn" style="font-size:10px;padding:4px 8px;text-transform:capitalize;'+(s.role===r?"border-color:#7c3aed;color:#9d65f5":"")+'" onclick="updateRole(\''+s._id+'\',\''+r+'\')">'+r+'</button>').join("")+'</div>':'<span style="font-size:11px;color:#475569">Own account</span>')+'</td></tr>').join(""))+'</tbody></table></div>'
-  +'<div class="card"><div class="ct">Role Permissions</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px">'+[{r:"admin",c:"#22c55e",p:["All features","Both modes","Manage staff","Settings","Audit log"]},{r:"manager",c:"#f59e0b",p:["Property bookings","Transport rides","Reports","WhatsApp","Paystack"]},{r:"staff",c:"#9d65f5",p:["View bookings","View rides","Dashboard","Calendar"]},{r:"driver",c:"#38bdf8",p:["Transport only","GPS tracking","Own rides"]}].map(x=>'<div style="background:#111122;border:1px solid '+x.c+'33;border-radius:8px;padding:11px 13px"><span class="bdg" style="background:'+x.c+'22;color:'+x.c+';border:1px solid '+x.c+'44;text-transform:capitalize">'+x.r+'</span><ul style="margin-top:7px;padding-left:14px;font-size:11px;color:#64748b;line-height:1.9">'+x.p.map(p=>'<li>'+p+'</li>').join("")+'</ul></div>').join("")+'</div></div>';
+  return'<div class="pg">Staff Management</div><div style="font-size:13px;color:#64748b;margin-bottom:14px">Create accounts in Firebase Console → Authentication → Add user, then assign roles below.</div><div class="tw" style="margin-bottom:14px"><table><thead><tr><th>Staff member</th><th>Email</th><th>Role</th><th>Change role</th></tr></thead><tbody>'+(S.staff.length===0?'<tr><td colspan="4" class="em">No staff yet.</td></tr>':S.staff.map(s=>'<tr><td><div style="display:flex;align-items:center;gap:8px">'+av(s.name||s.email,28)+'<span style="font-weight:500">'+esc(s.name||s.email.split("@")[0])+(s._id===S.user.uid?'<span style="font-size:9px;color:#475569"> (you)</span>':"")+'</span></div></td><td style="font-size:11px;color:#64748b">'+esc(s.email)+'</td><td>'+roleBadge(s.role||"staff")+'</td><td>'+(s._id!==S.user.uid?'<div style="display:flex;gap:5px;flex-wrap:wrap">'+ROLES.map(r=>{const rc=RCL[r]||RCL.staff;return'<button class="btn" style="font-size:10px;padding:4px 8px;text-transform:capitalize;'+(s.role===r?"border-color:"+rc.c+";color:"+rc.c+";font-weight:600":"")+'" onclick="updateRole(\''+s._id+'\',\''+r+'\')">'+r+'</button>';}).join("")+'</div>':'<span style="font-size:11px;color:#475569">Own account</span>')+'</td></tr>').join(""))+'</tbody></table></div>'
+  +'<div class="card"><div class="ct">Role Permissions</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px">'+[{r:"admin",c:"#22c55e",bg:"#0d2d1a",p:["All features","Both modes","Manage staff","Settings","Audit log"]},{r:"manager",c:"#f59e0b",bg:"#2d1a05",p:["Property bookings","Transport rides","Reports","WhatsApp","Paystack"]},{r:"staff",c:"#a78bfa",bg:"#1a1040",p:["View bookings","View rides","Dashboard","Calendar"]},{r:"driver",c:"#0ea5e9",bg:"#062730",p:["Transport only","GPS tracking","Own rides"]}].map(x=>'<div style="background:#111122;border:1px solid '+x.c+'33;border-radius:8px;padding:11px 13px"><span class="bdg" style="background:'+x.bg+';color:'+x.c+';border:1px solid '+x.c+'44;text-transform:capitalize">'+x.r+'</span><ul style="margin-top:7px;padding-left:14px;font-size:11px;color:#64748b;line-height:1.9">'+x.p.map(p=>'<li>'+p+'</li>').join("")+'</ul></div>').join("")+'</div></div>';
 }
 
 // ── AUDIT ──
@@ -953,10 +961,9 @@ function rModal(){
   if(isRide){
     const fare=s.fare?fmt(s.fare):s.estimatedFare?"~"+fmt(s.estimatedFare)+" (est.)":"-";
     const ph=wa(s.phone||"");
-    return'<div class="mb2" onclick="closeSel()"><div class="mbox" onclick="event.stopPropagation()"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:15px;font-weight:600">Ride Details</div><div style="display:flex;gap:7px">'+(isAdmin()?'<button class="btnd" onclick="setDel(\''+s._id+'\')">Delete</button>':"")+'<button class="btn" onclick="closeSel()">✕</button></div></div>'+DR("Passenger","<strong>"+esc(s.passenger)+"</strong>")+DR("Phone",esc(s.phone||"—"))+DR("Pickup",esc(s.pickup||"—"))+DR("Dropoff",esc(s.dropoff||"—"))+DR("Date & Time",(s.date||"—")+" "+(s.time?ftm(s.time):""))+DR("Driver",esc(s.driverName||"—"))+DR("Vehicle",esc(s.vehicle||"—")+" · <span style='color:#0ea5e9'>"+esc(s.plate||"—")+"</span>")+DR("Distance",s.distanceKm?s.distanceKm.toFixed(1)+" km":"Not completed yet")+DR("Fare","<strong style='color:#22c55e'>"+fare+"</strong>"+(s.isNight?" <span style='color:#f59e0b;font-size:10px'>🌙 night</span>":"")+(s.isAirport?" <span style='color:#38bdf8;font-size:10px'>✈️ airport</span>":""))+DR("Status",rb(s.status))+DR("Payment",pb(s.paymentStatus||"Unpaid"))+(s.notes?DR("Notes",esc(s.notes)):"")+DR("Created by","<span style='color:#64748b;font-size:11px'>"+esc(s.createdBy||"—")+"</span>")+(isMgr()&&s.status==="Pending"?'<div style="margin-top:14px;display:flex;gap:8px"><button class="bg" style="flex:1;justify-content:center;display:flex;align-items:center;gap:6px;padding:11px" onclick="startRide(\''+s._id+'\')">🚗 Start Ride</button><button class="br" style="padding:11px" onclick="cancelRide(\''+s._id+'\')">❌</button></div>':"")+(isMgr()&&s.status==="Active"?'<div style="margin-top:14px;display:flex;gap:8px"><button class="bg" style="flex:1;justify-content:center;display:flex;align-items:center;gap:6px;padding:11px" onclick="completeRide(\''+s._id+'\')">✅ Complete Ride</button><button class="br" style="padding:11px" onclick="cancelRide(\''+s._id+'\')">❌</button></div>':"")+(ph.length>=10?'<button class="bw" style="margin-top:10px" onclick="window.open(\'https://wa.me/'+ph+'?text='+encodeURIComponent("Ride update: "+s.status+". Driver: "+(s.driverName||"TBA")+". Plate: "+(s.plate||"TBA"))+'\'\'_blank\')">💬 Send WhatsApp Update</button>':"")+'</div></div>';
+    return'<div class="mb2" onclick="closeSel()"><div class="mbox" onclick="event.stopPropagation()"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:15px;font-weight:600">Ride Details</div><div style="display:flex;gap:7px">'+(isAdmin()?'<button class="btnd" onclick="setDel(\''+s._id+'\')">Delete</button>':"")+'<button class="btn" onclick="closeSel()">✕</button></div></div>'+DR("Passenger","<strong>"+esc(s.passenger)+"</strong>")+DR("Phone",esc(s.phone||"—"))+DR("Pickup",esc(s.pickup||"—"))+DR("Dropoff",esc(s.dropoff||"—"))+DR("Date & Time",(s.date||"—")+" "+(s.time?ftm(s.time):""))+DR("Driver",esc(s.driverName||"—"))+DR("Vehicle",esc(s.vehicle||"—")+" · <span style='color:#0ea5e9'>"+esc(s.plate||"—")+"</span>")+DR("Distance",s.distanceKm?s.distanceKm.toFixed(1)+" km":"Not completed yet")+DR("Fare","<strong style='color:#22c55e'>"+fare+"</strong>"+(s.isNight?" <span style='color:#f59e0b;font-size:10px'>🌙 night</span>":"")+(s.isAirport?" <span style='color:#38bdf8;font-size:10px'>✈️ airport</span>":""))+DR("Status",rb(s.status))+DR("Payment",pb(s.paymentStatus||"Unpaid"))+(s.notes?DR("Notes",esc(s.notes)):"")+DR("Created by","<span style='color:#64748b;font-size:11px'>"+esc(s.createdBy||"—")+"</span>")+(isMgr()&&s.status==="Pending"?'<div style="margin-top:14px;display:flex;gap:8px"><button class="bg" style="flex:1;justify-content:center;display:flex;align-items:center;gap:6px;padding:11px" onclick="startRide(\''+s._id+'\')">🚗 Start Ride</button><button class="br" style="padding:11px" onclick="cancelRide(\''+s._id+'\')">❌</button></div>':"")+(isMgr()&&s.status==="Active"?'<div style="margin-top:14px;display:flex;gap:8px"><button class="bg" style="flex:1;justify-content:center;display:flex;align-items:center;gap:6px;padding:11px" onclick="completeRide(\''+s._id+'\')">✅ Complete Ride</button><button class="br" style="padding:11px" onclick="cancelRide(\''+s._id+'\')">❌</button></div>':"")+(ph.length>=10?'<button class="bw" style="margin-top:10px" onclick="window.open(\'https://wa.me/'+ph+'?text='+encodeURIComponent("Ride update: "+s.status+". Driver: "+(s.driverName||"TBA")+". Plate: "+(s.plate||"TBA"))+'\',\'_blank\')">💬 Send WhatsApp Update</button>':"")+'</div></div>';
   }
 
-  // BOOKING MODAL
   const u=gUnit(s.unitId);const c=u?pc(u.colorIdx||0):PC[0];const tot=nts(s.checkIn,s.checkOut)*(u?.price||0);
   if(S.editMode&&S.editForm){
     const f=S.editForm;
