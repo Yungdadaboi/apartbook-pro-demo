@@ -4,96 +4,169 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
 <title>ApartBook Pro</title>
-<meta name="theme-color" content="#7c3aed"/>
+<meta name="theme-color" content="#8b5cf6"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{background:#08080f;color:#e2e8f0;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+body{background:#07070f;color:#e1e7ef;font-family:'Plus Jakarta Sans',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 input,select,textarea,button{font-family:inherit;font-size:inherit}
 input[type=date]::-webkit-calendar-picker-indicator,
-input[type=time]::-webkit-calendar-picker-indicator{filter:invert(.6)}
+input[type=time]::-webkit-calendar-picker-indicator{filter:invert(.5)}
 ::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-thumb{background:#2a2a3d;border-radius:3px}
-:root{--mc:#7c3aed;--mb:#1a1040;--md:rgba(124,58,237,.4)}
-body.tm{--mc:#0ea5e9;--mb:#0d1f36;--md:rgba(14,165,233,.4)}
-.hdr{background:#0c0c18;border-bottom:1px solid #1e1e2e;position:sticky;top:0;z-index:100}
-.hdr-top{display:flex;align-items:center;padding:0 10px;height:50px;gap:7px;border-bottom:1px solid #1e1e2e}
-.hdr-tabs{display:flex;align-items:center;overflow-x:auto;padding:0 6px;height:38px;gap:1px;scrollbar-width:none}
+::-webkit-scrollbar-thumb{background:#ffffff14;border-radius:3px}
+:root{
+  --mc:#8b5cf6;--mb:#12093a;--md:rgba(139,92,246,.35);--mcs:rgba(139,92,246,.12);
+  --bg1:#07070f;--bg2:#0c0c1c;--bg3:#111128;
+  --bdr:rgba(255,255,255,.07);--bdr2:rgba(255,255,255,.12);
+  --txt:#e1e7ef;--txt2:#94a3b8;--txt3:#475569;
+}
+body.tm{--mc:#0ea5e9;--mb:#061525;--md:rgba(14,165,233,.35);--mcs:rgba(14,165,233,.1)}
+
+/* ─── HEADER ─── */
+.hdr{background:rgba(7,7,15,.9);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--bdr);position:sticky;top:0;z-index:100}
+.hdr-top{display:flex;align-items:center;padding:0 12px;height:52px;gap:8px;border-bottom:1px solid var(--bdr)}
+.hdr-tabs{display:flex;align-items:center;overflow-x:auto;padding:0 8px;height:40px;gap:1px;scrollbar-width:none}
 .hdr-tabs::-webkit-scrollbar{display:none}
-.tb{background:none;border:none;border-bottom:2px solid transparent;padding:7px 10px;font-size:11px;cursor:pointer;color:#64748b;white-space:nowrap;flex-shrink:0;height:100%}
+.tb{background:none;border:none;border-bottom:2px solid transparent;padding:8px 11px;font-size:11.5px;cursor:pointer;color:var(--txt3);white-space:nowrap;flex-shrink:0;height:100%;font-family:inherit;letter-spacing:.02em;transition:color .15s}
+.tb:hover{color:var(--txt2)}
 .tb.active{border-bottom-color:var(--mc);color:var(--mc);font-weight:600}
-.mt{display:flex;background:#111122;border:1px solid #2a2a3d;border-radius:8px;overflow:hidden;flex-shrink:0}
-.mb{padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:none;color:#64748b}
-.mb.ap{background:#1a1040;color:#9d65f5}
-.mb.at{background:#0d1f36;color:#38bdf8}
-.main{padding:14px 12px;max-width:980px;margin:0 auto}
-.pg{font-size:17px;font-weight:600;margin-bottom:14px}
-.card{background:#0f0f1c;border:1px solid #1e1e2e;border-radius:12px;padding:16px 18px;margin-bottom:14px}
-.ct{font-size:14px;font-weight:600;margin-bottom:12px}
-.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
-.stat{background:#0f0f1c;border:1px solid #1e1e2e;border-radius:12px;padding:12px 14px}
-.sl{font-size:10px;color:#64748b;margin-bottom:3px}
-.sv{font-size:20px;font-weight:700}
+.mt{display:flex;background:rgba(255,255,255,.06);border:1px solid var(--bdr2);border-radius:9px;overflow:hidden;flex-shrink:0}
+.mb{padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:none;color:var(--txt3);font-family:inherit;transition:.15s}
+.mb.ap{background:rgba(139,92,246,.2);color:#c4b5fd}
+.mb.at{background:rgba(14,165,233,.18);color:#7dd3fc}
+
+/* ─── LAYOUT ─── */
+.main{padding:16px 14px;max-width:990px;margin:0 auto}
+.pg{font-family:'Bricolage Grotesque',sans-serif;font-size:18px;font-weight:700;margin-bottom:16px;letter-spacing:-.02em}
+
+/* ─── CARDS ─── */
+.card{background:linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.015));border:1px solid var(--bdr);border-radius:14px;padding:18px 20px;margin-bottom:14px;transition:border-color .2s}
+.card:hover{border-color:var(--bdr2)}
+.ct{font-size:10px;font-weight:700;margin-bottom:13px;color:var(--txt3);text-transform:uppercase;letter-spacing:.07em}
+
+/* ─── STATS ─── */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-bottom:14px}
+.stat{background:linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.01));border:1px solid var(--bdr);border-radius:13px;padding:13px 15px;transition:transform .2s,border-color .2s}
+.stat:hover{transform:translateY(-1px);border-color:var(--bdr2)}
+.sl{font-size:10px;color:var(--txt3);margin-bottom:4px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sv{font-size:22px;font-weight:700;font-family:'Bricolage Grotesque',sans-serif;letter-spacing:-.02em}
 .wide{grid-column:1/-1}
 @media(min-width:500px){.stats{grid-template-columns:repeat(3,1fr)}}
-label{font-size:12px;color:#64748b;display:block;margin-bottom:4px}
-input,select,textarea{width:100%;background:#111122;border:1px solid #2a2a3d;border-radius:8px;color:#e2e8f0;padding:8px 12px;font-size:13px;margin-bottom:10px;outline:none}
-input:focus,select:focus,textarea:focus{border-color:var(--mc)}
-textarea{resize:vertical;min-height:60px}
+
+/* ─── FORMS ─── */
+label{font-size:12px;color:var(--txt3);display:block;margin-bottom:5px;font-weight:500;letter-spacing:.025em}
+input,select,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--bdr2);border-radius:9px;color:var(--txt);padding:9px 13px;font-size:13px;margin-bottom:11px;outline:none;transition:border-color .15s,background .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--mc);background:rgba(255,255,255,.08)}
+textarea{resize:vertical;min-height:62px}
 .fr{display:flex;gap:10px;flex-wrap:wrap}
 .fc{flex:1;min-width:140px}
-.btn{background:none;border:1px solid #2a2a3d;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12px;color:#e2e8f0}
-.btnp{background:var(--mc);border:none;border-radius:8px;padding:9px 20px;cursor:pointer;font-size:13px;color:#fff;font-weight:500}
-.btnd{background:none;border:1px solid rgba(239,68,68,.4);border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12px;color:#ef4444}
-.bg{background:#0d2d1a;border:1.5px solid rgba(34,197,94,.5);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;color:#22c55e;font-weight:500}
-.br{background:#2d0d0d;border:1.5px solid rgba(239,68,68,.5);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;color:#ef4444;font-weight:500}
-.bw{background:#0a2d1a;border:1.5px solid rgba(37,211,102,.4);border-radius:8px;padding:9px 14px;cursor:pointer;font-size:13px;color:#25d366;font-weight:500;display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-bottom:8px}
-.tw{overflow-x:auto;border:1px solid #1e1e2e;border-radius:12px}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:left;padding:9px 11px;border-bottom:1px solid #1e1e2e;color:#64748b;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;background:#111122}
-td{padding:10px 11px;border-bottom:1px solid #1e1e2e;vertical-align:middle}
+
+/* ─── BUTTONS ─── */
+.btn{background:rgba(255,255,255,.05);border:1px solid var(--bdr2);border-radius:9px;padding:8px 15px;cursor:pointer;font-size:12px;color:var(--txt);font-family:inherit;transition:background .15s,border-color .15s}
+.btn:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.18)}
+.btnp{background:linear-gradient(135deg,var(--mc),color-mix(in srgb,var(--mc) 80%,#000));border:none;border-radius:9px;padding:10px 22px;cursor:pointer;font-size:13px;color:#fff;font-weight:600;font-family:inherit;box-shadow:0 4px 20px var(--md);transition:transform .15s,box-shadow .15s}
+.btnp:hover{transform:translateY(-1px);box-shadow:0 6px 28px var(--md)}
+.btnp:active{transform:translateY(0)}
+.btnd{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.35);border-radius:9px;padding:8px 15px;cursor:pointer;font-size:12px;color:#ef4444;font-family:inherit;transition:background .15s}
+.btnd:hover{background:rgba(239,68,68,.14)}
+.bg{background:rgba(34,197,94,.1);border:1.5px solid rgba(34,197,94,.4);border-radius:9px;padding:9px 16px;cursor:pointer;font-size:12px;color:#22c55e;font-weight:600;font-family:inherit;transition:background .15s}
+.bg:hover{background:rgba(34,197,94,.18)}
+.br{background:rgba(239,68,68,.09);border:1.5px solid rgba(239,68,68,.4);border-radius:9px;padding:9px 16px;cursor:pointer;font-size:12px;color:#ef4444;font-weight:600;font-family:inherit;transition:background .15s}
+.br:hover{background:rgba(239,68,68,.16)}
+.bw{background:rgba(37,211,102,.07);border:1.5px solid rgba(37,211,102,.3);border-radius:9px;padding:10px 16px;cursor:pointer;font-size:13px;color:#25d366;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:9px;font-family:inherit;transition:background .15s}
+.bw:hover{background:rgba(37,211,102,.13)}
+
+/* ─── TABLES ─── */
+.tw{overflow-x:auto;border:1px solid var(--bdr);border-radius:13px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;padding:10px 13px;border-bottom:1px solid var(--bdr);color:var(--txt3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;background:rgba(255,255,255,.02)}
+td{padding:11px 13px;border-bottom:1px solid var(--bdr);vertical-align:middle}
 tr:last-child td{border:none}
-tbody tr:hover td{background:#111122;cursor:pointer}
-#live-map{height:320px;border-radius:10px;border:1px solid #1e1e2e;z-index:1}
-.mb2{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:300;padding:14px}
-.mbox{background:#0f0f1c;border:1px solid #1e1e2e;border-radius:14px;padding:22px;max-width:490px;width:100%;max-height:90vh;overflow-y:auto}
-.dr{display:flex;border-bottom:1px solid #1e1e2e;padding:8px 0;font-size:13px}
-.dl{color:#64748b;width:120px;flex-shrink:0}
-.em{color:#64748b;font-size:13px;padding:20px;text-align:center}
-.er{font-size:12px;color:#ef4444;margin-bottom:8px;min-height:16px}
-.ok{font-size:12px;color:#22c55e;margin-bottom:8px;min-height:16px}
-.ib{background:var(--mb);border:1px solid var(--md);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px}
-.sr{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+tbody tr:hover td{background:rgba(255,255,255,.03);cursor:pointer}
+#live-map{height:320px;border-radius:11px;border:1px solid var(--bdr);z-index:1}
+
+/* ─── MODAL ─── */
+.mb2{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:300;padding:14px}
+.mbox{background:#0d0d1c;border:1px solid var(--bdr2);border-radius:16px;padding:24px;max-width:490px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 28px 80px rgba(0,0,0,.7)}
+.dr{display:flex;border-bottom:1px solid var(--bdr);padding:9px 0;font-size:13px}
+.dl{color:var(--txt3);width:120px;flex-shrink:0;font-size:12px}
+
+/* ─── MISC ─── */
+.em{color:var(--txt3);font-size:13px;padding:22px;text-align:center}
+.er{font-size:12px;color:#ef4444;margin-bottom:9px;min-height:17px}
+.ok{font-size:12px;color:#22c55e;margin-bottom:9px;min-height:17px}
+.ib{background:rgba(255,255,255,.04);border:1px solid var(--bdr2);border-radius:9px;padding:11px 15px;margin-bottom:13px;font-size:13px}
+.sr{display:flex;gap:8px;margin-bottom:13px;flex-wrap:wrap}
 .sr input,.sr select{flex:1;min-width:140px;margin-bottom:0}
-.bb{height:7px;background:#111122;border-radius:4px;overflow:hidden;margin-top:4px}
+.bb{height:6px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;margin-top:5px}
 .bf{height:100%;border-radius:4px}
-.li{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid #1e1e2e;cursor:pointer}
+.li{display:flex;align-items:flex-start;gap:11px;padding:12px 0;border-bottom:1px solid var(--bdr);cursor:pointer}
 .li:last-child{border:none}
 .pu{animation:pu-a 1.5s infinite}
 @keyframes pu-a{0%,100%{opacity:1}50%{opacity:.3}}
-.tk-w{overflow:hidden;border-radius:6px;padding:5px 8px;height:26px;display:flex;align-items:center}
+.tk-w{overflow:hidden;border-radius:6px;padding:5px 9px;height:26px;display:flex;align-items:center}
 @keyframes tk{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 .tk{animation:tk 14s linear infinite;white-space:nowrap;display:inline-block}
 .tk:hover{animation-play-state:paused}
-.av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0}
-.bdg{border-radius:6px;padding:3px 9px;font-size:11px;font-weight:500;display:inline-block;white-space:nowrap}
-.lw{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#08080f;overflow:hidden;position:relative}
-.lg{position:fixed;top:-20%;left:50%;transform:translateX(-50%);width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,.07) 0%,transparent 70%);pointer-events:none}
-.lc{background:#0f0f1c;border:1px solid #1e1e2e;border-radius:16px;padding:28px 26px;box-shadow:0 24px 64px rgba(124,58,237,.15);width:100%;max-width:400px}
-.pw{position:relative;margin-bottom:6px}
-.pw input{margin-bottom:0;padding-right:46px}
-.pwt{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#64748b;cursor:pointer;font-size:12px;padding:0}
-.bl{width:100%;padding:12px;font-size:14px;font-weight:600;border:none;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;cursor:pointer;margin-top:16px;box-shadow:0 4px 24px rgba(124,58,237,.4)}
-.sp{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:14px;background:#08080f}
-.sp p{color:#64748b;font-size:14px}
-.waf{position:fixed;bottom:18px;right:18px;width:48px;height:48px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;font-size:22px;z-index:200;box-shadow:0 4px 18px rgba(37,211,102,.5);text-decoration:none}
-.dd{position:absolute;top:100%;left:0;right:0;background:#0f0f1c;border:1px solid #2a2a3d;border-top:none;border-radius:0 0 10px 10px;z-index:200;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.6);display:none}
-.ddi{padding:10px 13px;font-size:13px;cursor:pointer;border-bottom:1px solid #1e1e2e;color:#e2e8f0}
-.ddi:hover{background:#1a1a26}
+.av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-family:'Bricolage Grotesque',sans-serif}
+.bdg{border-radius:6px;padding:3px 9px;font-size:11px;font-weight:600;display:inline-block;white-space:nowrap}
+
+/* ─── LOGIN ─── */
+.lw{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg1);overflow:hidden;position:relative}
+.lg{position:fixed;top:-15%;left:50%;transform:translateX(-50%);width:900px;height:900px;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.06) 0%,transparent 65%);pointer-events:none}
+.lg2{position:fixed;bottom:-30%;right:-10%;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(6,182,212,.04) 0%,transparent 70%);pointer-events:none}
+.lc{background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.02));border:1px solid var(--bdr2);border-radius:20px;padding:32px 28px;box-shadow:0 32px 80px rgba(0,0,0,.5);width:100%;max-width:420px}
+.pw{position:relative;margin-bottom:7px}
+.pw input{margin-bottom:0;padding-right:48px}
+.pwt{position:absolute;right:13px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--txt3);cursor:pointer;font-size:12px;padding:0;font-family:inherit}
+.bl{width:100%;padding:13px;font-size:14px;font-weight:700;border:none;border-radius:11px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;cursor:pointer;margin-top:18px;box-shadow:0 6px 28px rgba(139,92,246,.45);font-family:'Bricolage Grotesque',sans-serif;letter-spacing:.01em;transition:transform .15s,box-shadow .15s}
+.bl:hover{transform:translateY(-1px);box-shadow:0 8px 36px rgba(139,92,246,.55)}
+.bl:active{transform:translateY(0)}
+.blc{width:100%;padding:13px;font-size:14px;font-weight:700;border:none;border-radius:11px;background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;cursor:pointer;margin-top:10px;box-shadow:0 6px 28px rgba(14,165,233,.35);font-family:'Bricolage Grotesque',sans-serif;letter-spacing:.01em;transition:transform .15s,box-shadow .15s}
+.blc:hover{transform:translateY(-1px);box-shadow:0 8px 36px rgba(14,165,233,.45)}
+.sp{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:14px;background:var(--bg1)}
+.sp p{color:var(--txt3);font-size:14px}
+
+/* Login tabs */
+.ltab-wrap{display:flex;background:rgba(255,255,255,.06);border-radius:10px;padding:4px;margin-bottom:24px;gap:3px}
+.ltab{flex:1;padding:9px;border:none;background:none;border-radius:7px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--txt3);font-family:inherit;transition:.2s}
+.ltab.act{background:rgba(255,255,255,.12);color:var(--txt)}
+
+/* Subtabs (sign in / sign up) */
+.subtab-wrap{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--bdr)}
+.subtab{flex:1;padding:9px 0;border:none;background:none;font-size:13px;font-weight:500;cursor:pointer;color:var(--txt3);font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;transition:.2s}
+.subtab.act{color:var(--mc);border-bottom-color:var(--mc);font-weight:700}
+
+/* ─── FAB ─── */
+.waf{position:fixed;bottom:20px;right:20px;width:52px;height:52px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;font-size:24px;z-index:200;box-shadow:0 6px 24px rgba(37,211,102,.55);text-decoration:none;transition:transform .2s}
+.waf:hover{transform:scale(1.06)}
+
+/* ─── DROPDOWN ─── */
+.dd{position:absolute;top:100%;left:0;right:0;background:#0d0d1c;border:1px solid var(--bdr2);border-top:none;border-radius:0 0 10px 10px;z-index:200;max-height:220px;overflow-y:auto;box-shadow:0 10px 32px rgba(0,0,0,.7);display:none}
+.ddi{padding:11px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--bdr);color:var(--txt)}
+.ddi:hover{background:rgba(255,255,255,.07)}
 .ddi:last-child{border:none}
+
+/* ─── CUSTOMER PORTAL ─── */
+.cust-hero{background:linear-gradient(135deg,rgba(139,92,246,.14),rgba(6,182,212,.07));border:1px solid rgba(139,92,246,.22);border-radius:16px;padding:28px 22px;margin-bottom:16px;text-align:center;position:relative;overflow:hidden}
+.cust-hero::before{content:'';position:absolute;top:-40%;right:-10%;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.12),transparent);pointer-events:none}
+.unit-browse-card{background:linear-gradient(145deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:2px solid var(--bdr);border-radius:14px;padding:18px;cursor:pointer;transition:border-color .2s,transform .18s,box-shadow .18s;margin-bottom:10px}
+.unit-browse-card:hover{border-color:var(--mc);transform:translateY(-2px);box-shadow:0 8px 32px var(--mcs)}
+.unit-browse-card.sel{border-color:var(--mc);background:rgba(139,92,246,.08)}
+.track-card{background:linear-gradient(135deg,rgba(14,165,233,.1),rgba(34,197,94,.05));border:2px solid rgba(14,165,233,.3);border-radius:14px;padding:20px}
+.step-badge{background:var(--mc);color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;font-family:'Bricolage Grotesque',sans-serif}
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.main>*{animation:fadeUp .3s ease both}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin 1s linear infinite;display:inline-block}
 </style>
 </head>
 <body>
@@ -163,7 +236,7 @@ function distKm(la1,lo1,la2,lo2){
 }
 
 // ── LOGOS ──
-const LP=(sz=28)=>`<svg width="${sz}" height="${sz}" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="9" fill="#1a1040"/><rect x="1" y="1" width="34" height="34" rx="8.5" stroke="#7c3aed" stroke-opacity=".6"/><rect x="8" y="16" width="20" height="14" rx="1.5" fill="#2d1b69"/><rect x="8" y="16" width="20" height="14" rx="1.5" stroke="#7c3aed" stroke-width="1"/><path d="M6 17L18 7L30 17" stroke="#9d65f5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="14.5" y="22" width="7" height="8" rx="1" fill="#7c3aed" opacity=".7"/><rect x="9.5" y="19" width="4" height="3.5" rx=".7" fill="#c4b5fd" opacity=".6"/><rect x="22.5" y="19" width="4" height="3.5" rx=".7" fill="#c4b5fd" opacity=".6"/><circle cx="18" cy="11.5" r="1.2" fill="#c4b5fd"/></svg>`;
+const LP=(sz=28)=>`<svg width="${sz}" height="${sz}" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="9" fill="#110a2e"/><rect x="1" y="1" width="34" height="34" rx="8.5" stroke="#8b5cf6" stroke-opacity=".7"/><rect x="8" y="16" width="20" height="14" rx="1.5" fill="#1e1050"/><rect x="8" y="16" width="20" height="14" rx="1.5" stroke="#8b5cf6" stroke-width="1"/><path d="M6 17L18 7L30 17" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="14.5" y="22" width="7" height="8" rx="1" fill="#8b5cf6" opacity=".8"/><rect x="9.5" y="19" width="4" height="3.5" rx=".7" fill="#c4b5fd" opacity=".7"/><rect x="22.5" y="19" width="4" height="3.5" rx=".7" fill="#c4b5fd" opacity=".7"/><circle cx="18" cy="11.5" r="1.3" fill="#e9d5ff"/></svg>`;
 const LT=(sz=28)=>`<svg width="${sz}" height="${sz}" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="9" fill="#0d1f36"/><rect x="1" y="1" width="34" height="34" rx="8.5" stroke="#0ea5e9" stroke-opacity=".6"/><rect x="6" y="20" width="24" height="10" rx="2" fill="#0ea5e9" opacity=".2"/><rect x="6" y="20" width="24" height="10" rx="2" stroke="#0ea5e9"/><path d="M8 20L10 14Q11 12 13 12L23 12Q25 12 26 14L28 20" stroke="#0ea5e9" stroke-width="1.2" fill="none"/><circle cx="11" cy="30" r="2.5" fill="#0ea5e9"/><circle cx="25" cy="30" r="2.5" fill="#0ea5e9"/><rect x="14" y="14" width="8" height="5" rx="1" fill="#7dd3fc" opacity=".5"/><circle cx="26" cy="16" r="2" fill="#22c55e"/></svg>`;
 
 // ── BADGE HELPERS ──
@@ -171,7 +244,7 @@ const bb=s=>{const c=BS[s]||{bg:"#111",c:"#64748b"};return`<span class="bdg" sty
 const rb=s=>{const c=RS[s]||{bg:"#111",c:"#64748b"};return`<span class="bdg" style="background:${c.bg};color:${c.c}">${esc(s)}</span>`;};
 const db2=s=>{const c=DS[s]||DS.Offline;return`<span class="bdg" style="background:${c.bg};color:${c.c}">${esc(s)}</span>`;};
 const pb=p=>`<span style="color:${p==="Paid"?"#22c55e":p==="Partial"?"#f59e0b":"#ef4444"};font-weight:500;font-size:12px">${esc(p||"Unpaid")}</span>`;
-const av=(n,sz=30,bg="#1a1040",bd="#7c3aed44",cl="#9d65f5")=>`<div class="av" style="width:${sz}px;height:${sz}px;font-size:${sz*.34}px;background:${bg};border:1.5px solid ${bd};color:${cl}">${ini(n)}</div>`;
+const av=(n,sz=30,bg="#1a1040",bd="#7c3aed44",cl="#a78bfa")=>`<div class="av" style="width:${sz}px;height:${sz}px;font-size:${sz*.34}px;background:${bg};border:1.5px solid ${bd};color:${cl}">${ini(n)}</div>`;
 const DR=(l,v)=>`<div class="dr"><span class="dl">${l}</span><div style="flex:1">${v}</div></div>`;
 // FIX: Role badge helper with correct colors
 const roleBadge=r=>{const c=RCL[r]||RCL.staff;return`<span class="bdg" style="background:${c.bg};color:${c.c};border:1px solid ${c.c}44;text-transform:capitalize">${esc(r||"staff")}</span>`;};
@@ -187,8 +260,14 @@ const S={
   editingProp:null,
   rpm:new Date().getMonth(),rpy:new Date().getFullYear(),
   lerr:"",lbusy:false,showpw:false,
+  // Login screen tabs
+  loginTab:"staff", custSubTab:"signin",
+  // Customer portal
+  custSelUnit:null,
+  custTab:"Browse",
 };
 const isAdmin=()=>S.profile?.role==="admin";
+const isCustomer=()=>S.profile?.role==="customer";
 const isMgr=()=>["admin","manager"].includes(S.profile?.role);
 const isDrv=()=>S.profile?.role==="driver";
 const curProp=()=>S.props.find(p=>p._id===S.selProp)||null;
@@ -217,6 +296,40 @@ window.doLogout=async function(){
 };
 window.togglePw=function(){S.showpw=!S.showpw;render();};
 
+window.doCustLogin=async function(){
+  const e=document.getElementById("ci-email")?.value?.trim();
+  const p=document.getElementById("ci-pass")?.value;
+  if(!e||!p){S.lerr="Enter email and password.";render();return;}
+  S.lbusy=true;S.lerr="";render();
+  try{
+    const c=await auth.signInWithEmailAndPassword(e,p);
+    await db.collection("audit_log").add({userId:c.user.uid,email:c.user.email,action:"LOGIN",timestamp:TS(),device:navigator.userAgent.slice(0,100)});
+  }catch(err){
+    S.lerr=err.code?.includes("invalid")||err.code?.includes("wrong")?"Invalid email or password.":"Error: "+err.message;
+    S.lbusy=false;render();
+  }
+};
+
+window.setLoginTab=function(t){S.loginTab=t;S.lerr="";render();};
+window.setCustSubTab=function(t){S.custSubTab=t;S.lerr="";render();};
+window.doSignup=async function(){
+  const n=document.getElementById("su-name")?.value?.trim();
+  const e=document.getElementById("su-email")?.value?.trim();
+  const p=document.getElementById("su-pass")?.value;
+  const ph=document.getElementById("su-phone")?.value?.trim();
+  if(!n||!e||!p){S.lerr="Name, email and password required.";render();return;}
+  if(p.length<6){S.lerr="Password must be at least 6 characters.";render();return;}
+  S.lbusy=true;S.lerr="";render();
+  try{
+    const c=await auth.createUserWithEmailAndPassword(e,p);
+    const d={email:e,name:n,phone:ph||"",role:"customer",createdAt:TS()};
+    await db.collection("users").doc(c.user.uid).set(d);
+  }catch(err){
+    S.lerr=err.code?.includes("email-already")?"An account with this email already exists. Try signing in.":"Error: "+err.message;
+    S.lbusy=false;render();
+  }
+};
+
 // ── DATA ──
 let bkUnsub=null,rdUnsub=null,auditUnsub=null,staffUnsub=null;
 function loadProfile(){
@@ -228,6 +341,12 @@ function loadProfile(){
       await db.collection("users").doc(S.user.uid).set(d);S.profile=d;
     }
     if(isDrv()){S.mode="transport";document.body.className="tm";}
+    if(isCustomer()){
+      S.mode="customer";if(!S.custTab)S.custTab="Browse";
+      loadProps();loadCustBk();loadCustRides();loadPricing();loadDrivers();
+    }else{
+      loadProps();loadDrivers();loadRides();
+    }
     render();
   });
 }
@@ -254,6 +373,22 @@ function loadBk(){
     render();
   },()=>{db.collection("bookings").where("propertyId","==",S.selProp).get().then(snap=>{S.bookings=snap.docs.map(d=>({...d.data(),_id:d.id}));render();});});
 }
+
+function loadCustBk(){
+  // Load all bookings created by this customer
+  if(bkUnsub){bkUnsub();bkUnsub=null;}
+  bkUnsub=db.collection("bookings").where("createdBy","==",S.user.email).onSnapshot(snap=>{
+    S.bookings=snap.docs.map(d=>({...d.data(),_id:d.id})).sort((a,b)=>(b.created?.seconds||0)-(a.created?.seconds||0));
+    render();
+  },()=>{});
+}
+function loadCustRides(){
+  if(rdUnsub){rdUnsub();rdUnsub=null;}
+  rdUnsub=db.collection("rides").where("createdBy","==",S.user.email).orderBy("created","desc").limit(50).onSnapshot(snap=>{
+    S.rides=snap.docs.map(d=>({...d.data(),_id:d.id}));render();
+  },()=>{});
+}
+
 function loadDrivers(){
   db.collection("drivers").onSnapshot(snap=>{S.drivers=snap.docs.map(d=>({...d.data(),_id:d.id}));render();},()=>{});
 }
@@ -606,7 +741,16 @@ window.updEF=function(k,v){if(S.editForm)S.editForm[k]=v;};
 // ══════════════════════════════════════════
 //  RENDER FUNCTIONS
 // ══════════════════════════════════════════
-function rLogin(){return'<div class="lw"><div class="lg"></div><div style="width:100%;max-width:400px;position:relative"><div style="display:flex;flex-direction:column;align-items:center;margin-bottom:28px"><div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">'+LP(44)+'<span style="font-size:22px;font-weight:800;background:linear-gradient(135deg,#c4b5fd,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent">ApartBook Pro</span></div><div style="font-size:13px;color:#64748b">Property &amp; Transport Management</div></div><div class="lc"><div style="font-size:20px;font-weight:700;margin-bottom:4px">Welcome back</div><div style="font-size:13px;color:#64748b;margin-bottom:20px">Sign in to manage your business</div><label>Email address</label><input id="lie" type="email" placeholder="admin@yourdomain.com" onkeydown="if(event.key===\'Enter\')doLogin()"/><label>Password</label><div class="pw"><input id="lip" type="'+(S.showpw?"text":"password")+'" placeholder="Your password" onkeydown="if(event.key===\'Enter\')doLogin()" style="margin-bottom:0;padding-right:46px"/><button class="pwt" onclick="togglePw()">'+(S.showpw?"Hide":"Show")+'</button></div>'+(S.lerr?'<div class="er" style="margin:6px 0">'+esc(S.lerr)+'</div>':'')+'<button class="bl" onclick="doLogin()" '+(S.lbusy?"disabled":"")+'>'+(S.lbusy?"Signing in…":"Sign In →")+'</button><div style="font-size:12px;color:#475569;text-align:center;margin-top:16px;line-height:1.6">Contact your administrator to create or reset your account.</div></div></div></div>';}
+function rLogin(){
+  const isStaff=S.loginTab!=="customer";
+  const logo=isStaff?LP(42):LT(42);
+  const grad=isStaff?"linear-gradient(135deg,#c4b5fd,#8b5cf6)":"linear-gradient(135deg,#7dd3fc,#0ea5e9)";
+  const staffForm='<label>Email address</label><input id="lie" type="email" placeholder="admin@yourdomain.com" onkeydown="if(event.key===\'Enter\')doLogin()"/><label>Password</label><div class="pw"><input id="lip" type="'+(S.showpw?"text":"password")+'" placeholder="Your password" onkeydown="if(event.key===\'Enter\')doLogin()" style="margin-bottom:0;padding-right:46px"/><button class="pwt" onclick="togglePw()">'+(S.showpw?"Hide":"Show")+'</button></div>'+(S.lerr?'<div class="er" style="margin:6px 0">'+esc(S.lerr)+'</div>':'')+'<button class="bl" onclick="doLogin()" '+(S.lbusy?"disabled":"")+'>'+(S.lbusy?'<span class="spin">⟳</span> Signing in…':'Sign In →')+'</button><div style="font-size:11.5px;color:#475569;text-align:center;margin-top:14px;line-height:1.7">Need an account? Contact your administrator.</div>';
+  const custSignIn='<label>Email address</label><input id="ci-email" type="email" placeholder="you@email.com" onkeydown="if(event.key===\'Enter\')doLogin()"/><label>Password</label><div class="pw"><input id="ci-pass" type="'+(S.showpw?"text":"password")+'" placeholder="Your password" style="margin-bottom:0;padding-right:48px"/><button class="pwt" onclick="togglePw()">'+(S.showpw?"Hide":"Show")+'</button></div>'+(S.lerr?'<div class="er" style="margin:6px 0">'+esc(S.lerr)+'</div>':'')+'<button class="blc" onclick="doCustLogin()" '+(S.lbusy?"disabled":"")+'>'+(S.lbusy?'<span class="spin">⟳</span> Signing in…':'Sign In →')+'</button>';
+  const custSignUp='<label>Full name *</label><input id="su-name" placeholder="Your full name"/><label>Email address *</label><input id="su-email" type="email" placeholder="you@email.com"/><label>Phone number</label><input id="su-phone" type="tel" placeholder="0801-234-5678"/><label>Password * <span style="color:#475569;font-weight:400">(min 6 chars)</span></label><div class="pw"><input id="su-pass" type="'+(S.showpw?"text":"password")+'" placeholder="Choose a strong password" style="margin-bottom:0;padding-right:48px"/><button class="pwt" onclick="togglePw()">'+(S.showpw?"Hide":"Show")+'</button></div>'+(S.lerr?'<div class="er" style="margin:6px 0">'+esc(S.lerr)+'</div>':'')+'<button class="blc" onclick="doSignup()" '+(S.lbusy?"disabled":"")+'>'+(S.lbusy?'<span class="spin">⟳</span> Creating account…':'Create My Account →')+'</button>';
+  const custContent='<div class="subtab-wrap"><button class="subtab '+(S.custSubTab==="signin"?"act":"")+'" onclick="setCustSubTab(\'signin\')">Sign In</button><button class="subtab '+(S.custSubTab==="signup"?"act":"")+'" onclick="setCustSubTab(\'signup\')">Create Account</button></div>'+(S.custSubTab==="signin"?custSignIn:custSignUp);
+  return'<div class="lw"><div class="lg"></div><div class="lg2"></div><div style="width:100%;max-width:430px;position:relative"><div style="display:flex;flex-direction:column;align-items:center;margin-bottom:22px"><div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'+logo+'<span style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:23px;font-weight:800;background:'+grad+';-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-.02em">ApartBook Pro</span></div><div style="font-size:13px;color:#64748b">Property &amp; Transport Management</div></div><div class="lc"><div class="ltab-wrap"><button class="ltab '+(S.loginTab==="staff"?"act":"")+'" onclick="setLoginTab(\'staff\')">🏢 Staff Login</button><button class="ltab '+(S.loginTab==="customer"?"act":"")+'" onclick="setLoginTab(\'customer\')">🧳 Guest Portal</button></div>'+(isStaff?staffForm:custContent)+'</div>'+(S.loginTab==="customer"?'<div style="margin-top:14px;background:rgba(14,165,233,.06);border:1px solid rgba(14,165,233,.18);border-radius:12px;padding:14px 18px;font-size:12px;color:#94a3b8;line-height:1.7"><strong style="color:#7dd3fc">What you can do as a guest:</strong><br>🏠 Browse &amp; book available apartments<br>🚗 Book a pickup ride<br>📍 Track your driver live on the map<br>📋 View all your booking history</div>':'')+\'</div></div>\';
+}
 
 function rHeader(){
   const ip=S.mode==="property";
@@ -628,7 +772,7 @@ function rPropDash(){
   const coT=S.bookings.filter(b=>b.checkOut===t&&b.status!=="Cancelled");
   const up=S.bookings.filter(b=>b.checkIn>t&&b.status==="Confirmed").slice(0,4);
   const us=units();
-  return'<div class="pg">🏠 Property Overview <span style="color:#64748b;font-size:13px;font-weight:400">— '+t+'</span></div>'+(S.isTracking?'<div style="background:#0d1f36;border:1px solid rgba(14,165,233,.4);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div class="pu" style="width:9px;height:9px;background:#22c55e;border-radius:50%"></div><span style="font-size:13px;color:#22c55e;font-weight:500">🚗 Transport GPS tracking active</span><button onclick="setMode(\'transport\')" style="font-size:11px;color:#38bdf8;background:none;border:1px solid rgba(14,165,233,.4);border-radius:6px;padding:4px 10px;cursor:pointer;margin-left:auto">View Transport</button></div>':"")+'<div class="stats"><div class="stat" style="border-top:3px solid #7c3aed"><div class="sl">Total bookings</div><div class="sv" style="color:#9d65f5">'+S.bookings.length+'</div></div><div class="stat" style="border-top:3px solid #22c55e"><div class="sl">Occupied</div><div class="sv" style="color:#22c55e">'+oc.size+'/'+us.length+'</div></div><div class="stat" style="border-top:3px solid #f59e0b"><div class="sl">Check-ins today</div><div class="sv" style="color:#f59e0b">'+ciT.length+'</div></div><div class="stat" style="border-top:3px solid #60a5fa"><div class="sl">Check-outs today</div><div class="sv" style="color:#60a5fa">'+coT.length+'</div></div><div class="stat wide" style="border-top:3px solid #7c3aed"><div class="sl">Total Monthly Gross Revenue — <span style="color:#9d65f5;font-weight:500">'+MN[cm]+' '+cy+'</span></div><div class="sv" style="color:#9d65f5;font-size:18px">'+fmt(Math.round(mRev))+'</div></div></div>'
+  return'<div class="pg">🏠 Property Overview <span style="color:#64748b;font-size:13px;font-weight:400">— '+t+'</span></div>'+(S.isTracking?'<div style="background:#0d1f36;border:1px solid rgba(14,165,233,.4);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div class="pu" style="width:9px;height:9px;background:#22c55e;border-radius:50%"></div><span style="font-size:13px;color:#22c55e;font-weight:500">🚗 Transport GPS tracking active</span><button onclick="setMode(\'transport\')" style="font-size:11px;color:#38bdf8;background:none;border:1px solid rgba(14,165,233,.4);border-radius:6px;padding:4px 10px;cursor:pointer;margin-left:auto">View Transport</button></div>':"")+'<div class="stats"><div class="stat" style="border-top:3px solid var(--mc)"><div class="sl">Total bookings</div><div class="sv" style="color:#a78bfa">'+S.bookings.length+'</div></div><div class="stat" style="border-top:3px solid #22c55e"><div class="sl">Occupied</div><div class="sv" style="color:#22c55e">'+oc.size+'/'+us.length+'</div></div><div class="stat" style="border-top:3px solid #f59e0b"><div class="sl">Check-ins today</div><div class="sv" style="color:#f59e0b">'+ciT.length+'</div></div><div class="stat" style="border-top:3px solid #60a5fa"><div class="sl">Check-outs today</div><div class="sv" style="color:#60a5fa">'+coT.length+'</div></div><div class="stat wide" style="border-top:3px solid var(--mc)"><div class="sl">Total Monthly Gross Revenue — <span style="color:#a78bfa;font-weight:500">'+MN[cm]+' '+cy+'</span></div><div class="sv" style="color:#a78bfa;font-size:18px">'+fmt(Math.round(mRev))+'</div></div></div>'
   +'<div class="card"><div class="ct">Unit Status — '+esc(curProp()?.name||"")+'</div><div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:11px"><span>🔴 Occupied</span><span>🟡 Booked</span><span>🟢 Free</span></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100%,1fr));gap:8px">'
   +us.map(u=>{
     const c=pc(u.colorIdx||0);const io=oc.has(u.id);const ib=!io&&bk.has(u.id);
@@ -646,7 +790,7 @@ function rPropDash(){
   +'</div></div>'
   +(ciT.length>0?'<div class="card"><div class="ct">📥 Today\'s Check-ins ('+ciT.length+')</div>'+ciT.map(b=>{const u=gUnit(b.unitId);const c=u?pc(u.colorIdx||0):PC[0];return'<div class="li" onclick="openSel(\''+b._id+'\');goTo(\'Bookings\')">'+av(b.guest,34,c.b,c.c+"44",c.c)+'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">'+esc(b.guest)+'</div><div style="font-size:11px;color:#64748b">'+esc(u?.name||"—")+" · "+nts(b.checkIn,b.checkOut)+' nights</div><div style="font-size:11px;color:#f59e0b;margin-top:2px">⏰ '+(b.checkInTime?ftm(b.checkInTime):"Time not set")+'</div></div>'+bb(b.status)+'</div>';}).join("")+'</div>':"")
   +(coT.length>0?'<div class="card"><div class="ct">📤 Today\'s Check-outs ('+coT.length+')</div>'+coT.map(b=>{const u=gUnit(b.unitId);const c=u?pc(u.colorIdx||0):PC[0];return'<div class="li" onclick="openSel(\''+b._id+'\');goTo(\'Bookings\')">'+av(b.guest,34,c.b,c.c+"44",c.c)+'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">'+esc(b.guest)+'</div><div style="font-size:11px;color:#64748b">'+esc(u?.name||"—")+" · stayed "+nts(b.checkIn,b.checkOut)+' nights</div><div style="font-size:11px;color:#60a5fa;margin-top:2px">⏰ '+(b.checkOutTime?ftm(b.checkOutTime):"Time not set")+'</div></div>'+pb(b.payment)+'</div>';}).join("")+'</div>':"")
-  +'<div class="card"><div class="ct">🗓 Upcoming Confirmed Check-ins</div>'+(up.length===0?'<div class="em">No upcoming confirmed check-ins.</div>':up.map(b=>{const u=gUnit(b.unitId);const c=u?pc(u.colorIdx||0):PC[0];return'<div class="li" onclick="openSel(\''+b._id+'\');goTo(\'Bookings\')">'+av(b.guest,32,c.b,c.c+"44",c.c)+'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+esc(b.guest)+'</div><div style="font-size:11px;color:#64748b">'+esc(u?.name||"—")+" · "+b.checkIn+" → "+b.checkOut+" · "+nts(b.checkIn,b.checkOut)+' nights</div>'+(b.checkInTime?'<div style="font-size:11px;color:#9d65f5">⏰ '+ftm(b.checkInTime)+'</div>':"")+'</div>'+bb(b.status)+'</div>';}).join(""))+'</div>';
+  +'<div class="card"><div class="ct">🗓 Upcoming Confirmed Check-ins</div>'+(up.length===0?'<div class="em">No upcoming confirmed check-ins.</div>':up.map(b=>{const u=gUnit(b.unitId);const c=u?pc(u.colorIdx||0):PC[0];return'<div class="li" onclick="openSel(\''+b._id+'\');goTo(\'Bookings\')">'+av(b.guest,32,c.b,c.c+"44",c.c)+'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+esc(b.guest)+'</div><div style="font-size:11px;color:#64748b">'+esc(u?.name||"—")+" · "+b.checkIn+" → "+b.checkOut+" · "+nts(b.checkIn,b.checkOut)+' nights</div>'+(b.checkInTime?'<div style="font-size:11px;color:#a78bfa">⏰ '+ftm(b.checkInTime)+'</div>':"")+'</div>'+bb(b.status)+'</div>';}).join(""))+'</div>';
 }
 
 // ── DRIVER DASHBOARD ── FIX: Added navigation buttons for pickup/dropoff
@@ -755,7 +899,7 @@ function rDriverDash(){
       <div class="stats" style="margin-bottom:0">
         <div class="stat" style="border-top:3px solid #0ea5e9"><div class="sl">Rides today</div><div class="sv" style="color:#0ea5e9">${todayRides.length}</div></div>
         <div class="stat" style="border-top:3px solid #22c55e"><div class="sl">Earned today</div><div class="sv" style="color:#22c55e;font-size:16px">${fmt(todayEarned)}</div></div>
-        <div class="stat" style="border-top:3px solid #9d65f5"><div class="sl">Total rides</div><div class="sv" style="color:#9d65f5">${myRides.length}</div></div>
+        <div class="stat" style="border-top:3px solid #a78bfa"><div class="sl">Total rides</div><div class="sv" style="color:#a78bfa">${myRides.length}</div></div>
         <div class="stat" style="border-top:3px solid #22c55e"><div class="sl">Total earned</div><div class="sv" style="color:#22c55e;font-size:15px">${fmt(totalEarned)}</div></div>
         <div class="stat wide" style="border-top:3px solid #f59e0b"><div class="sl">Completion rate</div><div class="sv" style="color:#f59e0b">${myRides.length?Math.round(myRides.filter(r=>r.status==="Completed").length/myRides.length*100):0}%</div></div>
       </div>
@@ -866,7 +1010,7 @@ function rCalendar(){
   const bfd=d=>{const s=ds(d);return S.bookings.filter(b=>b.checkIn<=s&&b.checkOut>s&&b.status!=="Cancelled");};
   const us=units();
   return'<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap"><button class="btn" onclick="if(S.rpm===0){S.rpm=11;S.rpy--;}else S.rpm--;render()">← Prev</button><div style="font-size:17px;font-weight:600">'+MN[m]+' '+y+'</div><button class="btn" onclick="if(S.rpm===11){S.rpm=0;S.rpy++;}else S.rpm++;render()">Next →</button></div><div class="card"><div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin-bottom:5px">'+["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>'<div style="font-size:11px;color:#64748b;text-align:center;padding:4px 0">'+d+'</div>').join("")+'</div><div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px">'+Array(first).fill(0).map(()=>"<div></div>").join("")
-  +Array.from({length:days},(_,i)=>i+1).map(day=>{const bks=bfd(day);const isT=ds(day)===t;return'<div style="min-height:56px;border:'+(isT?"1.5px solid #7c3aed":"1px solid #1e1e2e")+';border-radius:7px;padding:3px 5px;background:'+(bks.length?"#1a1040":"#111122")+'"><div style="font-size:11px;font-weight:'+(isT?600:400)+';color:'+(isT?"#9d65f5":"#64748b")+';margin-bottom:2px">'+day+'</div>'+bks.slice(0,2).map(b=>{const u=gUnit(b.unitId);const c=u?pc(u.colorIdx||0):PC[0];return'<div style="font-size:9px;background:'+c.c+';color:#fff;border-radius:3px;padding:1px 4px;margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+esc(u?.name?.split(" ")[0]||"—")+'</div>';}).join("")+(bks.length>2?'<div style="font-size:9px;color:#9d65f5">+'+(bks.length-2)+'</div>':"")+'</div>';}).join("")+'</div><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">'+us.map(u=>{const c=pc(u.colorIdx||0);return'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b"><span style="width:10px;height:10px;border-radius:2px;background:'+c.c+';display:inline-block"></span>'+esc(u.name)+'</span>';}).join("")+'</div></div>';
+  +Array.from({length:days},(_,i)=>i+1).map(day=>{const bks=bfd(day);const isT=ds(day)===t;return'<div style="min-height:56px;border:'+(isT?"1.5px solid #7c3aed":"1px solid #1e1e2e")+';border-radius:7px;padding:3px 5px;background:'+(bks.length?"#1a1040":"#111122")+'"><div style="font-size:11px;font-weight:'+(isT?600:400)+';color:'+(isT?"#a78bfa":"#64748b")+';margin-bottom:2px">'+day+'</div>'+bks.slice(0,2).map(b=>{const u=gUnit(b.unitId);const c=u?pc(u.colorIdx||0):PC[0];return'<div style="font-size:9px;background:'+c.c+';color:#fff;border-radius:3px;padding:1px 4px;margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+esc(u?.name?.split(" ")[0]||"—")+'</div>';}).join("")+(bks.length>2?'<div style="font-size:9px;color:#a78bfa">+'+(bks.length-2)+'</div>':"")+'</div>';}).join("")+'</div><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">'+us.map(u=>{const c=pc(u.colorIdx||0);return'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b"><span style="width:10px;height:10px;border-radius:2px;background:'+c.c+';display:inline-block"></span>'+esc(u.name)+'</span>';}).join("")+'</div></div>';
 }
 
 // ── PROPERTY REPORTS ──
@@ -878,8 +1022,8 @@ function rPropRep(){
   const tRev=S.bookings.filter(b=>b.payment==="Paid").reduce((s,b)=>s+(gUnit(b.unitId)?.price||0)*nts(b.checkIn,b.checkOut),0);
   const maxR=Math.max(...us.map(u=>S.bookings.filter(b=>b.unitId===u.id&&b.payment==="Paid").reduce((s,b)=>s+nts(b.checkIn,b.checkOut)*u.price,0)),1);
   const fBk=S.bookings.length>0?[...S.bookings].sort((a,b)=>(a.created?.seconds||0)-(b.created?.seconds||0))[0]:null;
-  return'<div class="pg">🏠 Property Reports</div><div class="card" style="border-left:3px solid #7c3aed"><div class="ct">🗄️ Data Summary — '+esc(curProp()?.name||"")+'</div><div class="stats"><div class="stat"><div class="sl">Total bookings</div><div class="sv" style="color:#9d65f5">'+S.bookings.length+'</div></div><div class="stat"><div class="sl">Total customers</div><div class="sv" style="color:#22c55e">'+new Set(S.bookings.map(b=>b.email||b.phone||b.guest)).size+'</div></div><div class="stat"><div class="sl">Total units</div><div class="sv" style="color:#60a5fa">'+us.length+'</div></div><div class="stat"><div class="sl">All-time revenue</div><div class="sv" style="color:#22c55e;font-size:15px">'+fmt(tRev)+'</div></div><div class="stat"><div class="sl">Data since</div><div class="sv" style="color:#f59e0b;font-size:13px">'+(fBk?.created?.toDate?.()?.toLocaleDateString()||"—")+'</div></div><div class="stat"><div class="sl">DB status</div><div class="sv" style="color:#22c55e;font-size:13px">🟢 Online</div></div></div><button onclick="expPropCSV()" style="width:100%;padding:13px;background:linear-gradient(135deg,#0d2d1a,#0a2010);border:1.5px solid rgba(34,197,94,.5);border-radius:10px;color:#22c55e;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px"><span style="font-size:18px">📊</span><span>Download Bookings as Excel / CSV</span></button><div style="font-size:11px;color:#475569;text-align:center">All '+S.bookings.length+' bookings · guest details · payments · dates</div></div>'
-  +'<div class="card"><div class="ct">📄 Monthly PDF Report</div><div class="fr"><div class="fc"><label>Month</label><select onchange="setRpm(this.value)">'+MN.map((mn,i)=>'<option value="'+i+'" '+(i===S.rpm?"selected":"")+'>'+mn+'</option>').join("")+'</select></div><div class="fc"><label>Year</label><select onchange="setRpy(this.value)">'+[2024,2025,2026,2027].map(y=>'<option value="'+y+'" '+(y===S.rpy?"selected":"")+'>'+y+'</option>').join("")+'</select></div></div><div style="background:#111122;border-radius:9px;padding:13px;margin-bottom:14px"><div style="font-size:10px;color:#64748b;margin-bottom:8px;font-weight:500;text-transform:uppercase;letter-spacing:.04em">Preview: '+MN[S.rpm]+' '+S.rpy+'</div><div style="display:flex;gap:18px;flex-wrap:wrap"><div><div style="font-size:10px;color:#64748b">Bookings</div><div style="font-size:17px;font-weight:700;color:#9d65f5">'+mb.length+'</div></div><div><div style="font-size:10px;color:#64748b">Confirmed</div><div style="font-size:17px;font-weight:700;color:#22c55e">'+mb.filter(b=>b.status==="Confirmed").length+'</div></div><div><div style="font-size:10px;color:#64748b">Cancelled</div><div style="font-size:17px;font-weight:700;color:#ef4444">'+mb.filter(b=>b.status==="Cancelled").length+'</div></div><div><div style="font-size:10px;color:#64748b">Revenue</div><div style="font-size:15px;font-weight:700;color:#22c55e">'+fmt(rev)+'</div></div></div></div><button class="btnp" onclick="genPDF(\'property\')" style="width:100%;padding:12px;display:flex;align-items:center;justify-content:center;gap:8px">📥 Download PDF</button></div>'
+  return'<div class="pg">🏠 Property Reports</div><div class="card" style="border-left:3px solid #7c3aed"><div class="ct">🗄️ Data Summary — '+esc(curProp()?.name||"")+'</div><div class="stats"><div class="stat"><div class="sl">Total bookings</div><div class="sv" style="color:#a78bfa">'+S.bookings.length+'</div></div><div class="stat"><div class="sl">Total customers</div><div class="sv" style="color:#22c55e">'+new Set(S.bookings.map(b=>b.email||b.phone||b.guest)).size+'</div></div><div class="stat"><div class="sl">Total units</div><div class="sv" style="color:#60a5fa">'+us.length+'</div></div><div class="stat"><div class="sl">All-time revenue</div><div class="sv" style="color:#22c55e;font-size:15px">'+fmt(tRev)+'</div></div><div class="stat"><div class="sl">Data since</div><div class="sv" style="color:#f59e0b;font-size:13px">'+(fBk?.created?.toDate?.()?.toLocaleDateString()||"—")+'</div></div><div class="stat"><div class="sl">DB status</div><div class="sv" style="color:#22c55e;font-size:13px">🟢 Online</div></div></div><button onclick="expPropCSV()" style="width:100%;padding:13px;background:linear-gradient(135deg,#0d2d1a,#0a2010);border:1.5px solid rgba(34,197,94,.5);border-radius:10px;color:#22c55e;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px"><span style="font-size:18px">📊</span><span>Download Bookings as Excel / CSV</span></button><div style="font-size:11px;color:#475569;text-align:center">All '+S.bookings.length+' bookings · guest details · payments · dates</div></div>'
+  +'<div class="card"><div class="ct">📄 Monthly PDF Report</div><div class="fr"><div class="fc"><label>Month</label><select onchange="setRpm(this.value)">'+MN.map((mn,i)=>'<option value="'+i+'" '+(i===S.rpm?"selected":"")+'>'+mn+'</option>').join("")+'</select></div><div class="fc"><label>Year</label><select onchange="setRpy(this.value)">'+[2024,2025,2026,2027].map(y=>'<option value="'+y+'" '+(y===S.rpy?"selected":"")+'>'+y+'</option>').join("")+'</select></div></div><div style="background:#111122;border-radius:9px;padding:13px;margin-bottom:14px"><div style="font-size:10px;color:#64748b;margin-bottom:8px;font-weight:500;text-transform:uppercase;letter-spacing:.04em">Preview: '+MN[S.rpm]+' '+S.rpy+'</div><div style="display:flex;gap:18px;flex-wrap:wrap"><div><div style="font-size:10px;color:#64748b">Bookings</div><div style="font-size:17px;font-weight:700;color:#a78bfa">'+mb.length+'</div></div><div><div style="font-size:10px;color:#64748b">Confirmed</div><div style="font-size:17px;font-weight:700;color:#22c55e">'+mb.filter(b=>b.status==="Confirmed").length+'</div></div><div><div style="font-size:10px;color:#64748b">Cancelled</div><div style="font-size:17px;font-weight:700;color:#ef4444">'+mb.filter(b=>b.status==="Cancelled").length+'</div></div><div><div style="font-size:10px;color:#64748b">Revenue</div><div style="font-size:15px;font-weight:700;color:#22c55e">'+fmt(rev)+'</div></div></div></div><button class="btnp" onclick="genPDF(\'property\')" style="width:100%;padding:12px;display:flex;align-items:center;justify-content:center;gap:8px">📥 Download PDF</button></div>'
   +'<div class="card"><div class="ct">📈 All-Time Revenue by Unit</div>'+us.map(u=>{const c=pc(u.colorIdx||0);const r=S.bookings.filter(b=>b.unitId===u.id&&b.payment==="Paid").reduce((s,b)=>s+nts(b.checkIn,b.checkOut)*u.price,0);const cnt=S.bookings.filter(b=>b.unitId===u.id).length;return'<div style="margin-bottom:13px"><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px"><span style="color:'+c.c+';font-weight:500">'+esc(u.name)+'</span><span style="color:#22c55e;font-weight:500">'+fmt(r)+'<span style="color:#64748b;font-weight:400;font-size:10px"> · '+cnt+' bk</span></span></div><div class="bb"><div class="bf" style="width:'+(r/maxR*100).toFixed(1)+'%;background:linear-gradient(90deg,'+c.c+','+c.c+'88)"></div></div></div>';}).join("")+(us.length===0?'<div class="em">No units yet.</div>':"")+'</div>';
 }
 
@@ -938,13 +1082,13 @@ function rSettings(){
 function rStaff(){
   if(!isAdmin())return'<div class="em">Admin access required.</div>';
   return'<div class="pg">Staff Management</div><div style="font-size:13px;color:#64748b;margin-bottom:14px">Create accounts in Firebase Console → Authentication → Add user, then assign roles below.</div><div class="tw" style="margin-bottom:14px"><table><thead><tr><th>Staff member</th><th>Email</th><th>Role</th><th>Change role</th></tr></thead><tbody>'+(S.staff.length===0?'<tr><td colspan="4" class="em">No staff yet.</td></tr>':S.staff.map(s=>'<tr><td><div style="display:flex;align-items:center;gap:8px">'+av(s.name||s.email,28)+'<span style="font-weight:500">'+esc(s.name||s.email.split("@")[0])+(s._id===S.user.uid?'<span style="font-size:9px;color:#475569"> (you)</span>':"")+'</span></div></td><td style="font-size:11px;color:#64748b">'+esc(s.email)+'</td><td>'+roleBadge(s.role||"staff")+'</td><td>'+(s._id!==S.user.uid?'<div style="display:flex;gap:5px;flex-wrap:wrap">'+ROLES.map(r=>{const rc=RCL[r]||RCL.staff;return'<button class="btn" style="font-size:10px;padding:4px 8px;text-transform:capitalize;'+(s.role===r?"border-color:"+rc.c+";color:"+rc.c+";font-weight:600":"")+'" onclick="updateRole(\''+s._id+'\',\''+r+'\')">'+r+'</button>';}).join("")+'</div>':'<span style="font-size:11px;color:#475569">Own account</span>')+'</td></tr>').join(""))+'</tbody></table></div>'
-  +'<div class="card"><div class="ct">Role Permissions</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px">'+[{r:"admin",c:"#22c55e",bg:"#0d2d1a",p:["All features","Both modes","Manage staff","Settings","Audit log"]},{r:"manager",c:"#f59e0b",bg:"#2d1a05",p:["Property bookings","Transport rides","Reports","WhatsApp","Paystack"]},{r:"staff",c:"#a78bfa",bg:"#1a1040",p:["View bookings","View rides","Dashboard","Calendar"]},{r:"driver",c:"#0ea5e9",bg:"#062730",p:["Transport only","GPS tracking","Own rides"]}].map(x=>'<div style="background:#111122;border:1px solid '+x.c+'33;border-radius:8px;padding:11px 13px"><span class="bdg" style="background:'+x.bg+';color:'+x.c+';border:1px solid '+x.c+'44;text-transform:capitalize">'+x.r+'</span><ul style="margin-top:7px;padding-left:14px;font-size:11px;color:#64748b;line-height:1.9">'+x.p.map(p=>'<li>'+p+'</li>').join("")+'</ul></div>').join("")+'</div></div>';
+  +'<div class="card" style="border-color:rgba(14,165,233,.3);margin-top:4px"><div class="ct">🧳 Customer Portal</div><div style="font-size:13px;color:#94a3b8;line-height:1.7;margin-bottom:14px">Customers can self-register at your app's login page by clicking <strong style="color:#7dd3fc">Guest Portal</strong>. They get a <span style="color:#a78bfa">customer</span> role automatically and can:<br><span style="display:inline-block;margin-top:6px">🏠 Browse &amp; book apartments · 🚗 Request rides · 📍 Track their driver live</span></div><div style="display:flex;gap:8px;flex-wrap:wrap"><div style="background:rgba(14,165,233,.07);border:1px solid rgba(14,165,233,.2);border-radius:8px;padding:9px 14px;font-size:12px;color:#38bdf8">Share your app link: <strong>yungdadaboi.github.io/apartbook-pro-demo</strong></div></div></div>'+'<div class="card"><div class="ct">Role Permissions</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px">'+[{r:"admin",c:"#22c55e",bg:"#0d2d1a",p:["All features","Both modes","Manage staff","Settings","Audit log"]},{r:"manager",c:"#f59e0b",bg:"#2d1a05",p:["Property bookings","Transport rides","Reports","WhatsApp","Paystack"]},{r:"staff",c:"#a78bfa",bg:"#1a1040",p:["View bookings","View rides","Dashboard","Calendar"]},{r:"driver",c:"#0ea5e9",bg:"#062730",p:["Transport only","GPS tracking","Own rides"]}].map(x=>'<div style="background:#111122;border:1px solid '+x.c+'33;border-radius:8px;padding:11px 13px"><span class="bdg" style="background:'+x.bg+';color:'+x.c+';border:1px solid '+x.c+'44;text-transform:capitalize">'+x.r+'</span><ul style="margin-top:7px;padding-left:14px;font-size:11px;color:#64748b;line-height:1.9">'+x.p.map(p=>'<li>'+p+'</li>').join("")+'</ul></div>').join("")+'</div></div>';
 }
 
 // ── AUDIT ──
 function rAudit(){
   if(!isAdmin())return'<div class="em">Admin access required.</div>';
-  return'<div class="pg">Audit Log</div><div style="font-size:13px;color:#64748b;margin-bottom:14px">Every login and logout is automatically recorded.</div><div class="tw"><table><thead><tr><th>User</th><th>Action</th><th>Date & Time</th><th>Device</th></tr></thead><tbody>'+(S.auditLog.length===0?'<tr><td colspan="4" class="em">No records yet.</td></tr>':S.auditLog.map(l=>'<tr><td style="color:#9d65f5;font-size:11px">'+esc(l.email)+'</td><td><span class="bdg" style="background:'+(l.action==="LOGIN"?"#1a1040":"#2d0d0d")+';color:'+(l.action==="LOGIN"?"#9d65f5":"#ef4444")+'">'+l.action+'</span></td><td style="color:#64748b;font-size:11px">'+(l.timestamp?.toDate?.()?.toLocaleString()||"—")+'</td><td style="color:#475569;font-size:10px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc((l.device||"—").slice(0,60))+'</td></tr>').join(""))+'</tbody></table></div>';
+  return'<div class="pg">Audit Log</div><div style="font-size:13px;color:#64748b;margin-bottom:14px">Every login and logout is automatically recorded.</div><div class="tw"><table><thead><tr><th>User</th><th>Action</th><th>Date & Time</th><th>Device</th></tr></thead><tbody>'+(S.auditLog.length===0?'<tr><td colspan="4" class="em">No records yet.</td></tr>':S.auditLog.map(l=>'<tr><td style="color:#a78bfa;font-size:11px">'+esc(l.email)+'</td><td><span class="bdg" style="background:'+(l.action==="LOGIN"?"#1a1040":"#2d0d0d")+';color:'+(l.action==="LOGIN"?"#a78bfa":"#ef4444")+'">'+l.action+'</span></td><td style="color:#64748b;font-size:11px">'+(l.timestamp?.toDate?.()?.toLocaleString()||"—")+'</td><td style="color:#475569;font-size:10px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc((l.device||"—").slice(0,60))+'</td></tr>').join(""))+'</tbody></table></div>';
 }
 
 // ── MODALS ──
@@ -970,7 +1114,7 @@ function rModal(){
     return'<div class="mb2" onclick="closeSel()"><div class="mbox" onclick="event.stopPropagation()"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:15px;font-weight:600">Edit Booking</div><button class="btn" onclick="S.editMode=false;render()">Cancel</button></div><div class="fr"><div class="fc"><label>Guest name</label><input value="'+esc(f.guest||"")+'" oninput="updEF(\'guest\',this.value)"/></div><div class="fc"><label>Email</label><input value="'+esc(f.email||"")+'" oninput="updEF(\'email\',this.value)"/></div></div><div class="fr"><div class="fc"><label>Phone</label><input value="'+esc(f.phone||"")+'" oninput="updEF(\'phone\',this.value)"/></div><div class="fc"><label>Unit</label><select onchange="updEF(\'unitId\',this.value)">'+units().map(u=>'<option value="'+u.id+'" '+(u.id===f.unitId?"selected":"")+'>'+esc(u.name)+'</option>').join("")+'</select></div></div><div class="fr"><div class="fc"><label>Check-in</label><input type="date" value="'+( f.checkIn||"")+'" oninput="updEF(\'checkIn\',this.value)"/></div><div class="fc"><label>Check-out</label><input type="date" value="'+(f.checkOut||"")+'" oninput="updEF(\'checkOut\',this.value)"/></div></div><div class="fr"><div class="fc"><label>Status</label><select onchange="updEF(\'status\',this.value)">'+BSTAT.map(s=>'<option '+(s===f.status?"selected":"")+'>'+s+'</option>').join("")+'</select></div><div class="fc"><label>Payment</label><select onchange="updEF(\'payment\',this.value)">'+["Paid","Partial","Unpaid"].map(s=>'<option '+(s===f.payment?"selected":"")+'>'+s+'</option>').join("")+'</select></div></div><label>Notes</label><textarea oninput="updEF(\'notes\',this.value)">'+esc(f.notes||"")+'</textarea><div style="display:flex;gap:8px;margin-top:4px"><button class="btnp" onclick="saveEditBk()">Save Changes</button><button class="btn" onclick="S.editMode=false;render()">Cancel</button></div></div></div>';
   }
   return'<div class="mb2" onclick="closeSel()"><div class="mbox" onclick="event.stopPropagation()"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:15px;font-weight:600">Booking Details</div><div style="display:flex;gap:7px">'+(isMgr()?'<button class="btn" onclick="openEdit()">Edit</button>':"")+(isAdmin()?'<button class="btnd" onclick="setDel(\''+s._id+'\')">Delete</button>':"")+'<button class="btn" onclick="closeSel()">✕</button></div></div>'+DR("Guest","<strong>"+esc(s.guest)+"</strong>")+DR("Email",esc(s.email||"—"))+DR("Phone",esc(s.phone||"—"))+DR("Unit","<span class='bdg' style='background:"+c.b+";color:"+c.c+";border:1px solid "+c.c+"33'>"+esc(u?.name||"—")+"</span>")+DR("Check-in",s.checkIn+(s.checkInTime?" <span style='color:#64748b;font-size:11px'>at "+ftm(s.checkInTime)+"</span>":""))+DR("Check-out",s.checkOut+(s.checkOutTime?" <span style='color:#64748b;font-size:11px'>at "+ftm(s.checkOutTime)+"</span>":""))+DR("Nights",nts(s.checkIn,s.checkOut))+DR("Total","<strong style='color:#22c55e'>"+fmt(tot)+"</strong>")+DR("Status",bb(s.status))+DR("Payment",pb(s.payment))+(s.paystackRef?DR("Pay Ref","<span style='color:#64748b;font-size:11px'>"+esc(s.paystackRef)+"</span>"):"")+DR("Created by","<span style='color:#64748b;font-size:11px'>"+esc(s.createdBy||"—")+"</span>")
-  +(isMgr()?'<div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">'+(s.phone?'<button class="bw" onclick="window.open(\'https://wa.me/'+wa(s.phone||"")+'\',\'_blank\')">💬 Send WhatsApp</button>':"")+(s.payment!=="Paid"?'<button class="bg" onclick="doPay(\''+s._id+'\')" style="justify-content:center;display:flex;align-items:center;gap:7px;padding:11px">💳 Collect Payment via Paystack</button>':'<div style="background:#0d2d1a;border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:11px;text-align:center;font-size:13px;color:#22c55e">✓ Payment fully received</div>')+'</div><div style="margin-top:14px"><div style="font-size:12px;color:#64748b;margin-bottom:7px">Quick status update</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+BSTAT.map(st=>'<button class="btn" style="'+(s.status===st?"border-color:#7c3aed;color:#9d65f5;font-weight:500":"")+'" onclick="qbStat(\''+s._id+'\',\''+st+'\')">'+st+'</button>').join("")+'</div></div>':"")
+  +(isMgr()?'<div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">'+(s.phone?'<button class="bw" onclick="window.open(\'https://wa.me/'+wa(s.phone||"")+'\',\'_blank\')">💬 Send WhatsApp</button>':"")+(s.payment!=="Paid"?'<button class="bg" onclick="doPay(\''+s._id+'\')" style="justify-content:center;display:flex;align-items:center;gap:7px;padding:11px">💳 Collect Payment via Paystack</button>':'<div style="background:#0d2d1a;border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:11px;text-align:center;font-size:13px;color:#22c55e">✓ Payment fully received</div>')+'</div><div style="margin-top:14px"><div style="font-size:12px;color:#64748b;margin-bottom:7px">Quick status update</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+BSTAT.map(st=>'<button class="btn" style="'+(s.status===st?"border-color:#7c3aed;color:#a78bfa;font-weight:500":"")+'" onclick="qbStat(\''+s._id+'\',\''+st+'\')">'+st+'</button>').join("")+'</div></div>':"")
   +'</div></div>';
 }
 
@@ -981,22 +1125,210 @@ function rDelConfirm(){
 }
 
 // ── MAIN RENDER ──
+
+// ══════════════════════════════════════════
+//  CUSTOMER PORTAL
+// ══════════════════════════════════════════
+
+function rCustHeader(){
+  const name=(S.profile?.name||S.user.email).split(" ")[0];
+  const tabs=[{n:"Browse",i:"🏠"},{n:"My Bookings",i:"📋"},{n:"Book a Ride",i:"🚗"},{n:"Track Driver",i:"📍"}];
+  return'<div class="hdr"><div class="hdr-top"><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'+LP(26)+'<span style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:13.5px;font-weight:800;background:linear-gradient(135deg,#c4b5fd,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">ApartBook Pro</span></div><div style="margin-left:auto;display:flex;align-items:center;gap:7px;flex-shrink:0"><div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:5px 10px;font-size:11px;color:#c4b5fd;font-weight:600">👤 '+esc(name)+'</div><button onclick="doLogout()" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;color:#ef4444;font-weight:600;font-family:inherit">Sign Out</button></div></div><div class="hdr-tabs">'+tabs.map(t=>'<button class="tb '+(S.custTab===t.n?"active":"")+'" onclick="setCustTab(\''+t.n+'\')">'+t.i+' '+t.n+'</button>').join("")+'</div></div>';
+}
+
+window.setCustTab=function(t){S.custTab=t;S.custSelUnit=null;render();window.scrollTo({top:0,behavior:"smooth"});};
+
+function rCustomerPortal(){
+  const tab=S.custTab||"Browse";
+  if(tab==="Browse")return rCustBrowse();
+  if(tab==="My Bookings")return rCustBookings();
+  if(tab==="Book a Ride")return rCustRide();
+  if(tab==="Track Driver")return rCustTrack();
+  return rCustBrowse();
+}
+
+// ── BROWSE & BOOK UNIT ──
+function rCustBrowse(){
+  loadProps(); // ensure loaded
+  const us=units();
+  const t=tod();const oc=occ();const bk=bkd();
+  const prop=curProp();
+  if(S.custSelUnit){
+    const u=S.custSelUnit;const c=pc(u.colorIdx||0);
+    return'<div class="pg">Book Your Stay</div>'
+    +'<div style="margin-bottom:14px"><button class="btn" onclick="S.custSelUnit=null;render()">← Back to apartments</button></div>'
+    +'<div style="background:linear-gradient(145deg,rgba(139,92,246,.12),rgba(139,92,246,.04));border:2px solid rgba(139,92,246,.3);border-radius:16px;padding:20px;margin-bottom:16px">'
+    +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><div style="width:44px;height:44px;border-radius:10px;background:'+c.b+';border:2px solid '+c.c+'44;display:flex;align-items:center;justify-content:center;font-size:20px">🏠</div><div><div style="font-size:18px;font-weight:700;font-family:\'Bricolage Grotesque\',sans-serif;color:'+c.c+'">'+esc(u.name)+'</div><div style="font-size:12px;color:#94a3b8;margin-top:2px">'+(u.floor?u.floor+" floor · ":"")+u.beds+' bed'+(u.beds!==1?"s":"")+'</div></div><div style="margin-left:auto;text-align:right"><div style="font-size:22px;font-weight:800;font-family:\'Bricolage Grotesque\',sans-serif;color:#22c55e">'+fmt(u.price)+'</div><div style="font-size:11px;color:#94a3b8">per night</div></div></div></div>'
+    +'<div class="card"><div class="ct">Your Details</div>'
+    +'<div class="fr"><div class="fc"><label>Your name *</label><input id="cb-guest" placeholder="Full name" value="'+(S.profile?.name||"")+'"/></div><div class="fc"><label>Email *</label><input id="cb-email" type="email" placeholder="you@email.com" value="'+(S.profile?.email||"")+'"/></div></div>'
+    +'<div class="fr"><div class="fc"><label>Phone (WhatsApp) 📱</label><input id="cb-phone" type="tel" placeholder="0801-234-5678" value="'+(S.profile?.phone||"")+'"/></div></div>'
+    +'<div class="fr"><div class="fc"><label>Check-in date *</label><input id="cb-cin" type="date" min="'+t+'" onchange="custRefreshTot()"/></div><div class="fc"><label>Check-out date *</label><input id="cb-cout" type="date" min="'+t+'" onchange="custRefreshTot()"/></div></div>'
+    +'<label>Special requests</label><textarea id="cb-notes" placeholder="Any special requests or notes…"></textarea>'
+    +'<div id="cb-tot"></div>'
+    +'<div id="cb-er" class="er"></div><div id="cb-ok" class="ok"></div>'
+    +'<button class="btnp" onclick="custBookUnit(\''+u.id+'\')" style="width:100%;padding:13px;font-size:14px">🏠 Confirm Reservation</button></div>';
+  }
+
+  return'<div class="cust-hero"><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:24px;font-weight:800;margin-bottom:7px;letter-spacing:-.02em">Find Your Perfect Stay</div><div style="font-size:14px;color:#94a3b8;line-height:1.6">Browse available apartments and book instantly.<br>No calls needed — confirm online in seconds.</div></div>'
+  +(prop?'<div style="font-size:13px;color:#64748b;margin-bottom:14px">📍 '+esc(prop.name||"")+(prop.address?" · "+esc(prop.address):"")+'</div>':"")
+  +'<div class="pg" style="margin-bottom:12px">Available Apartments</div>'
+  +(us.length===0?'<div class="card"><div class="em">No apartments available right now. Check back soon or contact us.</div></div>':"")
+  +us.map(u=>{
+    const c=pc(u.colorIdx||0);const io=oc.has(u.id);const ib=!io&&bk.has(u.id);
+    const avail=!io;
+    return'<div class="unit-browse-card'+(io?" ":(ib?" ":""))+(avail?' unit-browse-card-avail':"")+'" style="opacity:'+(io?.6:1)+';cursor:'+(io?"not-allowed":"pointer")+'" onclick="'+( io?"":'S.custSelUnit='+JSON.stringify(u)+';render()')+'">'
+    +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+    +'<div style="display:flex;gap:13px;align-items:flex-start;flex:1"><div style="width:42px;height:42px;border-radius:10px;flex-shrink:0;background:'+c.b+';border:1.5px solid '+c.c+'55;display:flex;align-items:center;justify-content:center;font-size:18px">🏠</div>'
+    +'<div style="flex:1"><div style="font-size:15px;font-weight:700;color:'+c.c+';font-family:\'Bricolage Grotesque\',sans-serif;margin-bottom:3px">'+esc(u.name)+'</div>'
+    +'<div style="font-size:12px;color:#94a3b8">'+(u.floor?u.floor+" floor · ":"")+u.beds+' bedroom'+(u.beds!==1?"s":"")+'</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><span style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.2);border-radius:6px;padding:3px 9px;font-size:11px;color:#c4b5fd">🛏 '+u.beds+' bed'+(u.beds!==1?"s":"")+'</span>'
+    +(u.floor?'<span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:3px 9px;font-size:11px;color:#94a3b8">'+esc(u.floor)+' floor</span>':"")+'</div></div></div>'
+    +'<div style="text-align:right;flex-shrink:0"><div style="font-size:20px;font-weight:800;font-family:\'Bricolage Grotesque\',sans-serif;color:#22c55e">'+fmt(u.price)+'</div><div style="font-size:10px;color:#64748b;margin-bottom:8px">/night</div>'
+    +'<span style="font-size:10px;font-weight:700;background:'+(io?"rgba(239,68,68,.15)":ib?"rgba(245,158,11,.12)":"rgba(34,197,94,.12)")+';color:'+(io?"#ef4444":ib?"#f59e0b":"#22c55e")+';border:1px solid '+(io?"rgba(239,68,68,.3)":ib?"rgba(245,158,11,.3)":"rgba(34,197,94,.3)")+';border-radius:20px;padding:4px 11px">'+(io?"🔴 Occupied":ib?"🟡 Booked":"🟢 Available")+'</span></div></div>'
+    +(avail?'<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between"><span style="font-size:11.5px;color:#94a3b8">Click to select & book</span><span style="font-size:11.5px;color:var(--mc);font-weight:600">Book Now →</span></div>':"")
+    +'</div>';
+  }).join("");
+}
+
+window.custRefreshTot=function(){
+  const cin=document.getElementById("cb-cin")?.value;
+  const cout=document.getElementById("cb-cout")?.value;
+  const el=document.getElementById("cb-tot");if(!el)return;
+  if(cin&&cout&&cout>cin){
+    const n=nts(cin,cout);const u=S.custSelUnit;const tot=n*(u?.price||0);
+    el.innerHTML='<div class="ib" style="border-color:rgba(139,92,246,.3);background:rgba(139,92,246,.07)"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:10px;color:#94a3b8;margin-bottom:3px">ESTIMATED TOTAL</div><div style="font-size:20px;font-weight:800;font-family:\'Bricolage Grotesque\',sans-serif;color:#22c55e">'+fmt(tot)+'</div></div><div style="text-align:right;font-size:12px;color:#94a3b8"><div>'+n+' night'+(n!==1?"s":"")+'</div><div>'+fmt(u?.price||0)+'/night</div></div></div></div>';
+  }else{el.innerHTML="";}
+};
+
+window.custBookUnit=async function(uid){
+  const er=document.getElementById("cb-er");
+  const guest=document.getElementById("cb-guest")?.value?.trim();
+  const email=document.getElementById("cb-email")?.value?.trim();
+  const phone=document.getElementById("cb-phone")?.value?.trim();
+  const cin=document.getElementById("cb-cin")?.value;
+  const cout=document.getElementById("cb-cout")?.value;
+  const notes=document.getElementById("cb-notes")?.value?.trim();
+  if(!guest){if(er)er.textContent="Your name is required.";return;}
+  if(!cin||!cout){if(er)er.textContent="Please select check-in and check-out dates.";return;}
+  if(cout<=cin){if(er)er.textContent="Check-out must be after check-in.";return;}
+  const u=S.custSelUnit;
+  if(!u||!S.selProp){if(er)er.textContent="Unit error. Please go back and try again.";return;}
+  try{
+    await db.collection("bookings").add({guest,email:email||S.user.email,phone:phone||"",unitId:uid,propertyId:S.selProp,checkIn:cin,checkOut:cout,status:"Pending",payment:"Unpaid",notes:notes||"",created:TS(),createdBy:S.user.email,bookedOnline:true});
+    const tot=nts(cin,cout)*(u.price||0);
+    const ok=document.getElementById("cb-ok");
+    if(ok){ok.textContent="✅ Booking submitted! We'll confirm shortly.";setTimeout(()=>{S.custSelUnit=null;S.custTab="My Bookings";render();},2500);}
+    const ph=wa(phone||"");
+    if(ph.length>=10){
+      const msg=encodeURIComponent("Hello "+guest+"! 🏠\n\nYour booking request has been received.\n\n📍 Unit: "+u.name+"\n📅 Check-in: "+cin+"\n📅 Check-out: "+cout+"\n🌙 Nights: "+nts(cin,cout)+"\n💰 Est. Total: "+fmt(tot)+"\n\nStatus: Pending confirmation\nWe'll get back to you shortly! 🙏");
+      window.open("https://wa.me/"+ph+"?text="+msg,"_blank");
+    }
+  }catch(e){if(er)er.textContent="Error: "+e.message;}
+};
+
+// ── MY BOOKINGS ──
+function rCustBookings(){
+  const mine=S.bookings.filter(b=>b.email===S.user.email||b.createdBy===S.user.email);
+  return'<div class="pg">My Bookings</div>'
+  +(mine.length===0?'<div class="card"><div style="text-align:center;padding:28px"><div style="font-size:40px;margin-bottom:12px">🏠</div><div style="font-size:16px;font-weight:700;font-family:\'Bricolage Grotesque\',sans-serif;margin-bottom:6px">No bookings yet</div><div style="font-size:13px;color:#94a3b8;margin-bottom:18px">Browse apartments and make your first booking!</div><button class="btnp" onclick="setCustTab(\'Browse\')">Browse Apartments →</button></div></div>':"")
+  +mine.map(b=>{
+    const u=units().find(x=>x.id===b.unitId)||{name:"Apartment",price:0,colorIdx:0};
+    const c=pc(u.colorIdx||0);const nights=nts(b.checkIn,b.checkOut);const tot=nights*(u.price||0);
+    return'<div class="card" style="border-left:3px solid '+c.c+'">'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:8px"><div><div style="font-size:15px;font-weight:700;font-family:\'Bricolage Grotesque\',sans-serif;color:'+c.c+'">'+esc(u.name||"Apartment")+'</div><div style="font-size:11px;color:#94a3b8;margin-top:2px">Booking ref: <span style="color:#c4b5fd">'+b._id?.slice(-8)+'</span></div></div>'+bb(b.status)+'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px"><div style="background:rgba(255,255,255,.04);border-radius:9px;padding:10px"><div style="font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;margin-bottom:3px">Check-in</div><div style="font-size:13px;font-weight:600">'+b.checkIn+'</div>'+(b.checkInTime?'<div style="font-size:11px;color:#94a3b8">'+ftm(b.checkInTime)+'</div>':"")+'</div><div style="background:rgba(255,255,255,.04);border-radius:9px;padding:10px"><div style="font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;margin-bottom:3px">Check-out</div><div style="font-size:13px;font-weight:600">'+b.checkOut+'</div>'+(b.checkOutTime?'<div style="font-size:11px;color:#94a3b8">'+ftm(b.checkOutTime)+'</div>':"")+'</div></div>'
+    +'<div style="display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap"><div style="font-size:12px;color:#94a3b8">🌙 '+nights+' night'+(nights!==1?"s":"")+'</div><div style="font-size:18px;font-weight:800;font-family:\'Bricolage Grotesque\',sans-serif;color:#22c55e">'+fmt(tot)+'</div>'+pb(b.payment)+'</div>'
+    +(b.status==="Pending"?'<div style="margin-top:10px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:10px 12px;font-size:12px;color:#f59e0b">⏳ Awaiting confirmation from our team. We\'ll notify you shortly.</div>':"")
+    +(b.status==="Confirmed"&&b.payment!=="Paid"?'<div style="margin-top:10px;background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.25);border-radius:8px;padding:10px 12px;font-size:12px;color:#c4b5fd">💳 Payment pending — contact us to settle your balance.</div>':"")
+    +'</div>';
+  }).join("");
+}
+
+// ── BOOK A RIDE ──
+function rCustRide(){
+  const avDrivers=S.drivers.filter(d=>d.status!=="On Ride");
+  return'<div class="pg">Book a Ride</div>'
+  +'<div class="cust-hero" style="background:linear-gradient(135deg,rgba(14,165,233,.12),rgba(34,197,94,.06));border-color:rgba(14,165,233,.22);margin-bottom:16px"><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:20px;font-weight:800;margin-bottom:6px;letter-spacing:-.02em">🚗 Need a Ride?</div><div style="font-size:13px;color:#94a3b8">Enter your pickup and dropoff. Our driver will be assigned and you\'ll get a WhatsApp update.</div></div>'
+  +'<div class="card"><div class="ct">Ride Details</div>'
+  +'<div class="fr"><div class="fc"><label>Your name *</label><input id="cr-name" placeholder="Full name" value="'+(S.profile?.name||"")+'"/></div><div class="fc"><label>WhatsApp number *</label><input id="cr-phone" type="tel" placeholder="0801-234-5678" value="'+(S.profile?.phone||"")+'"/></div></div>'
+  +'<div class="fr"><div class="fc" style="position:relative"><label>📍 Pickup location *</label><input id="cr-pu" placeholder="e.g. Lekki Phase 1 Gate" autocomplete="off" oninput="locSearch(\'cr-pu\',\'cr-pu-dd\')" onblur="hideDd(\'cr-pu-dd\')"/><div id="cr-pu-dd" class="dd"></div></div><div class="fc" style="position:relative"><label>📍 Dropoff location *</label><input id="cr-do" placeholder="e.g. Victoria Island" autocomplete="off" oninput="locSearch(\'cr-do\',\'cr-do-dd\')" onblur="hideDd(\'cr-do-dd\')"/><div id="cr-do-dd" class="dd"></div></div></div>'
+  +'<div class="fr"><div class="fc"><label>Date *</label><input id="cr-dt" type="date" value="'+tod()+'"/></div><div class="fc"><label>Time *</label><input id="cr-tm" type="time" value="'+nowt()+'"/></div></div>'
+  +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:11px 14px"><input id="cr-air" type="checkbox" style="width:18px;height:18px;margin-bottom:0;flex-shrink:0"/><div><div style="font-size:13px;font-weight:500">Airport ride ✈️</div><div style="font-size:11px;color:#94a3b8">Adds '+fmt(S.pricing.airportFee)+' surcharge</div></div></div>'
+  +'<label>Notes for driver</label><textarea id="cr-notes" placeholder="Any special instructions or info for the driver…"></textarea>'
+  +'<div class="ib" style="font-size:12px;margin-bottom:12px"><span style="color:#94a3b8">Estimated fare based on distance:</span> Base <strong style="color:#38bdf8">'+fmt(S.pricing.baseFare)+'</strong> + <strong style="color:#38bdf8">'+fmt(S.pricing.perKm)+'</strong>/km'+(isNt()?' <span style="color:#f59e0b">🌙 Night rate active</span>':"")+'</div>'
+  +'<div id="cr-er" class="er"></div><div id="cr-ok" class="ok"></div>'
+  +'<button class="btnp" onclick="custBookRide()" style="width:100%;padding:13px;font-size:14px;background:linear-gradient(135deg,#0ea5e9,#0369a1)">🚗 Request Ride</button></div>';
+}
+
+window.custBookRide=async function(){
+  const er=document.getElementById("cr-er");
+  const se=m=>{if(er)er.textContent=m;};
+  const f={
+    passenger:document.getElementById("cr-name")?.value?.trim(),
+    phone:document.getElementById("cr-phone")?.value?.trim(),
+    pickup:document.getElementById("cr-pu")?.value?.trim(),
+    dropoff:document.getElementById("cr-do")?.value?.trim(),
+    date:document.getElementById("cr-dt")?.value||tod(),
+    time:document.getElementById("cr-tm")?.value||nowt(),
+    isAirport:document.getElementById("cr-air")?.checked||false,
+    notes:document.getElementById("cr-notes")?.value?.trim(),
+  };
+  if(!f.passenger){se("Your name is required.");return;}
+  if(!f.phone){se("WhatsApp number required for ride updates.");return;}
+  if(!f.pickup){se("Pickup location required.");return;}
+  if(!f.dropoff){se("Dropoff location required.");return;}
+  const ef=Math.round(calcFare(5,0,S.pricing,isNt(),f.isAirport));
+  try{
+    const avDrvs=S.drivers.filter(d=>d.status!=="On Ride");
+    const drv=avDrvs[0]||null;
+    await db.collection("rides").add({...f,status:"Pending",fare:0,estimatedFare:ef,distanceKm:0,durationMins:0,driverId:drv?._id||"",driverName:drv?.name||"",driverPhone:drv?.phone||"",vehicle:drv?.vehicle||"",plate:drv?.plate||"",createdBy:S.user.email,bookedOnline:true,created:TS(),paymentStatus:"Unpaid"});
+    const ok=document.getElementById("cr-ok");if(ok){ok.textContent="✅ Ride requested! You'll receive a WhatsApp update when a driver is assigned.";setTimeout(()=>{S.custTab="Track Driver";render();},2800);}
+    const ph=wa(f.phone||"");
+    if(ph.length>=10){
+      const msg=encodeURIComponent("Hello "+f.passenger+"! 🚗\n\nYour ride request has been received.\n\n📍 Pickup: "+f.pickup+"\n📍 Dropoff: "+f.dropoff+"\n⏰ "+f.time+"\n💰 Est. Fare: "+fmt(ef)+"\n\nWe'll assign a driver shortly. Thank you! 🙏");
+      window.open("https://wa.me/"+ph+"?text="+msg,"_blank");
+    }
+  }catch(e){se("Error: "+e.message);}
+};
+
+// ── TRACK DRIVER ──
+function rCustTrack(){
+  const mine=S.rides.filter(r=>r.createdBy===S.user.email);
+  const active=mine.find(r=>r.status==="Active");
+  const pending=mine.find(r=>r.status==="Pending");
+  const cur=active||pending;
+  return'<div class="pg">Track Your Driver</div>'
+  +(cur?'<div class="track-card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:15px;font-weight:700;font-family:\'Bricolage Grotesque\',sans-serif;color:'+(active?"#22c55e":"#f59e0b")+'">'+(active?"🚗 Ride In Progress":"⏳ Awaiting Driver")+'</div>'+rb(cur.status)+'</div>'
+  +'<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"><div style="display:flex;gap:8px;align-items:center"><div style="width:10px;height:10px;border-radius:50%;background:#22c55e;flex-shrink:0"></div><div style="font-size:13px">'+esc(cur.pickup||"—")+'</div></div><div style="width:1px;height:14px;background:#2a2a3d;margin-left:5px"></div><div style="display:flex;gap:8px;align-items:center"><div style="width:10px;height:10px;border-radius:50%;background:#ef4444;flex-shrink:0"></div><div style="font-size:13px">'+esc(cur.dropoff||"—")+'</div></div></div>'
+  +(cur.driverName?'<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:12px;margin-bottom:12px"><div style="font-size:11px;color:#64748b;margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Your Driver</div><div style="display:flex;align-items:center;gap:10px">'+av(cur.driverName,38,"#0d1f36","#0ea5e944","#38bdf8")+'<div><div style="font-size:14px;font-weight:600">'+esc(cur.driverName)+'</div><div style="font-size:12px;color:#0ea5e9">'+esc(cur.vehicle||"")+(cur.plate?" · "+esc(cur.plate):"")+'</div></div></div></div>':"<div style='font-size:13px;color:#94a3b8;margin-bottom:12px;padding:12px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:9px'>⏳ A driver will be assigned shortly. You'll receive a WhatsApp notification.</div>")
+  +(active&&cur.driverPhone?'<button class="bw" onclick="window.open(\'https://wa.me/'+wa(cur.driverPhone)+'\',\'_blank\')">💬 Message Driver on WhatsApp</button>':"")
+  +'<div style="display:flex;gap:8px;flex-wrap:wrap"><a href="https://www.openstreetmap.org/search?query='+encodeURIComponent(cur.pickup||"")+'" target="_blank" style="flex:1;min-width:120px;padding:10px;background:rgba(14,165,233,.08);border:1.5px solid rgba(14,165,233,.3);border-radius:9px;color:#38bdf8;font-size:12px;font-weight:600;text-align:center;text-decoration:none">🗺️ Pickup Map</a><a href="https://www.openstreetmap.org/search?query='+encodeURIComponent(cur.dropoff||"")+'" target="_blank" style="flex:1;min-width:120px;padding:10px;background:rgba(34,197,94,.08);border:1.5px solid rgba(34,197,94,.3);border-radius:9px;color:#22c55e;font-size:12px;font-weight:600;text-align:center;text-decoration:none">🗺️ Dropoff Map</a></div></div>'
+  :'<div class="card"><div style="text-align:center;padding:28px"><div style="font-size:40px;margin-bottom:12px">📍</div><div style="font-size:16px;font-weight:700;font-family:\'Bricolage Grotesque\',sans-serif;margin-bottom:6px">No active ride</div><div style="font-size:13px;color:#94a3b8;margin-bottom:18px">Book a ride and your driver will appear here once assigned.</div><button class="btnp" onclick="setCustTab(\'Book a Ride\')" style="background:linear-gradient(135deg,#0ea5e9,#0369a1)">Book a Ride →</button></div></div>')
+  +'<div class="pg" style="margin-top:6px">My Recent Rides</div>'
+  +(mine.length===0?'<div class="card"><div class="em">No rides yet.</div></div>':mine.slice(0,6).map(r=>'<div class="card" style="padding:14px 16px;margin-bottom:9px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'+rb(r.status)+'<span style="font-size:12px;color:#94a3b8">'+(r.date||"")+'</span></div><div style="font-size:12px;font-weight:500;margin-bottom:4px">'+esc(r.pickup||"—")+' → '+esc(r.dropoff||"—")+'</div><div style="font-size:12px;color:#94a3b8">🚗 '+esc(r.driverName||"Driver TBA")+' · '+esc(r.plate||"")+'</div>'+(r.fare?'<div style="font-size:14px;font-weight:700;color:#22c55e;margin-top:5px">'+fmt(r.fare)+'</div>':"")+'</div>').join(""));
+}
+
+
 function render(){
   const app=document.getElementById("app");if(!app)return;
   if(S.user===null){app.innerHTML=rLogin();return;}
-  if(!S.user||!S.profile){app.innerHTML='<div class="sp"><p>Loading ApartBook Pro…</p></div>';return;}
+  if(!S.user||!S.profile){app.innerHTML='<div class="sp">'+LP(48)+'<div style="width:32px;height:32px;border:3px solid var(--mc);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-top:8px"></div><p style="margin-top:10px">Loading ApartBook Pro…</p></div>';return;}
+  if(isCustomer()){
+    app.innerHTML=rCustHeader()+'<div class="main">'+rCustomerPortal()+'</div><a class="waf" href="https://wa.me/'+SUPPORT_WA+'" target="_blank">💬</a>';
+    return;
+  }
   const ip=S.mode==="property";
   const PV={Dashboard:rPropDash,Properties:rProperties,"New Booking":rNewBooking,Bookings:rBookings,Customers:rCustomers,Calendar:rCalendar,Reports:rPropRep,Staff:rStaff,Audit:rAudit};
   const TV={Dashboard:isDrv()?rDriverDash:rTransDash,"New Ride":rNewRide,"Live Map":rLiveMap,Drivers:rDrivers,Rides:rRides,Reports:rTransRep,Settings:rSettings,Staff:rStaff,Audit:rAudit};
   const views=ip?PV:TV;
-  app.innerHTML=rHeader()+'<div class="main">'+(views[S.tab]||views.Dashboard)()+'</div>'+(S.sel&&!S.delId?rModal():"")+(S.delId?rDelConfirm():"")+'<a class="waf" href="https://wa.me/'+SUPPORT_WA+'" target="_blank">💬</a>';
+  app.innerHTML=rHeader()+'<div class="main">'+(views[S.tab]||views.Dashboard)()+'</div>'+(S.sel&&!S.delId?rModal():"")+(S.delId?rDelConfirm():"")+'<a class="waf" href="https://wa.me/'+SUPPORT_WA+'" target="_blank" title="Chat with us on WhatsApp">💬</a>';
   if(S.tab==="Live Map")setTimeout(()=>initMap(),80);
 }
 
 // ── BOOT ──
 auth.onAuthStateChanged(user=>{
   S.user=user||null;
-  if(user){loadProfile();loadPricing();loadProps();loadDrivers();loadRides();}
+  if(user){loadProfile();loadPricing();}
   else{
     S.profile=null;S.rides=[];S.drivers=[];S.bookings=[];S.props=[];
     if(bkUnsub){bkUnsub();bkUnsub=null;}if(rdUnsub){rdUnsub();rdUnsub=null;}
