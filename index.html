@@ -264,6 +264,8 @@ const S={
   // Customer portal
   custSelUnit:null,
   custTab:"Browse",
+  allBookings:[], // all property bookings for availability
+  custMapInited:false,
 };
 const isAdmin=()=>S.profile?.role==="admin";
 const isCustomer=()=>S.profile?.role==="customer";
@@ -297,6 +299,7 @@ window.doLogin=async function(){
 };
 window.doLogout=async function(){
   _propsListening=false;_drvsListening=false;_pricingListening=false;
+  if(_availUnsub){_availUnsub();_availUnsub=null;}
   try{await db.collection("audit_log").add({userId:S.user.uid,email:S.user.email,action:"LOGOUT",timestamp:TS(),device:navigator.userAgent.slice(0,100)});}catch(_){}
   stopGPS();auth.signOut();
 };
@@ -349,7 +352,7 @@ function loadProfile(){
     if(isDrv()){S.mode="transport";document.body.className="tm";}
     if(isCustomer()){
       S.mode="customer";if(!S.custTab)S.custTab="Browse";
-      loadProps();loadCustBk();loadCustRides();loadPricing();loadDrivers();
+      loadProps();loadCustBk();loadCustRides();loadPricing();loadDrivers();setTimeout(()=>{if(S.selProp)loadAllBkForAvail();else setTimeout(()=>loadAllBkForAvail(),2000);},800);
     }else{
       loadProps();loadDrivers();loadRides();
     }
@@ -364,6 +367,22 @@ function loadPricing(){
     S.pricing=snap.exists?{...DP,...snap.data()}:{...DP};render();
   });
 }
+
+let _availUnsub=null;
+function loadAllBkForAvail(){
+  if(_availUnsub){_availUnsub();_availUnsub=null;}
+  if(!S.selProp)return;
+  _availUnsub=db.collection("bookings").where("propertyId","==",S.selProp).onSnapshot(snap=>{
+    S.allBookings=snap.docs.map(d=>({...d.data(),_id:d.id}));
+    render();
+  },()=>{
+    // fallback: try without realtime
+    db.collection("bookings").where("propertyId","==",S.selProp).get().then(snap=>{
+      S.allBookings=snap.docs.map(d=>({...d.data(),_id:d.id}));render();
+    }).catch(()=>{});
+  });
+}
+
 let _propsListening=false;
 function loadProps(){
   if(_propsListening)return;
@@ -1153,7 +1172,8 @@ function rCustHeader(){
 }
 
 window.clearCustUnit=function(){S.custSelUnit=null;render();};
-window.setCustTab=function(t){S.custTab=t;S.custSelUnit=null;render();window.scrollTo({top:0,behavior:"smooth"});};
+window.setCustTab_orig=window.setCustTab;
+window.setCustTab=function(t){if(t!=="Track Driver")cleanCustMap();S.custTab=t;S.custSelUnit=null;render();window.scrollTo({top:0,behavior:"smooth"});};
 
 function rCustomerPortal(){
   const tab=S.custTab||"Browse";
@@ -1167,7 +1187,11 @@ function rCustomerPortal(){
 // ── BROWSE & BOOK UNIT ──
 function rCustBrowse(){
   const us=units();
-  const t=tod();const oc=occ();const bk=bkd();
+  const t=tod();
+  // Use ALL property bookings for real availability (not just customer's own)
+  const allBk=S.allBookings.length>0?S.allBookings:S.bookings;
+  const oc=new Set(allBk.filter(b=>b.checkIn<=t&&b.checkOut>t&&(b.status==="Confirmed"||b.status==="Checked In")).map(b=>b.unitId));
+  const bk=new Set(allBk.filter(b=>b.checkIn>t&&(b.status==="Confirmed"||b.status==="Pending")).map(b=>b.unitId));
   const prop=curProp();
   if(S.custSelUnit){
     const u=S.custSelUnit;const c=pc(u.colorIdx||0);
@@ -1178,11 +1202,10 @@ function rCustBrowse(){
     +'<div class="card"><div class="ct">Your Details</div>'
     +'<div class="fr"><div class="fc"><label>Your name *</label><input id="cb-guest" placeholder="Full name" value="'+(S.profile?.name||"")+'"/></div><div class="fc"><label>Email *</label><input id="cb-email" type="email" placeholder="you@email.com" value="'+(S.profile?.email||"")+'"/></div></div>'
     +'<div class="fr"><div class="fc"><label>Phone (WhatsApp) 📱</label><input id="cb-phone" type="tel" placeholder="0801-234-5678" value="'+(S.profile?.phone||"")+'"/></div></div>'
-    +'<div class="fr"><div class="fc"><label>Check-in date *</label><input id="cb-cin" type="date" min="'+t+'" onchange="custRefreshTot()"/></div><div class="fc"><label>Check-out date *</label><input id="cb-cout" type="date" min="'+t+'" onchange="custRefreshTot()"/></div></div>'
+    +'<div class="fr"><div class="fc"><label>Check-in date *</label><input id="cb-cin" type="date" min="'+t+'" onchange="custRefreshTot()"/></div><div class="fc"><label>Check-out date *</label><input id="cb-cout" type="date" min="'+t+'" onchange="custRefreshTot()"/></div></div>'+'<div class="fr"><div class="fc"><label>Check-in time</label><input id="cb-cit" type="time" value="14:00"/></div><div class="fc"><label>Check-out time</label><input id="cb-cot" type="time" value="11:00"/></div></div>'
     +'<label>Special requests</label><textarea id="cb-notes" placeholder="Any special requests or notes…"></textarea>'
     +'<div id="cb-tot"></div>'
-    +'<div id="cb-er" class="er"></div><div id="cb-ok" class="ok"></div>'
-    +'<button class="btnp" onclick="custBookUnit(\''+u.id+'\')" style="width:100%;padding:13px;font-size:14px">🏠 Confirm Reservation</button></div>';
+    +'<div id="cb-er" class="er"></div><div id="cb-ok" class="ok"></div>'+'<button class="btnp" onclick="custPayAndBook(\''+u.id+'\')" style="width:100%;padding:13px;font-size:14px;background:linear-gradient(135deg,#22c55e,#15803d)">💳 Pay &amp; Confirm Reservation</button>'+'<button onclick="custBookUnit(\''+u.id+'\')" style="width:100%;padding:11px;font-size:13px;background:none;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#94a3b8;cursor:pointer;font-family:inherit;margin-top:8px">📋 Reserve Now, Pay Later</button></div>';
   }
 
   return'<div class="cust-hero"><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:24px;font-weight:800;margin-bottom:7px;letter-spacing:-.02em">Find Your Perfect Stay</div><div style="font-size:14px;color:#94a3b8;line-height:1.6">Browse available apartments and book instantly.<br>No calls needed — confirm online in seconds.</div></div>'
@@ -1231,7 +1254,7 @@ window.custBookUnit=async function(uid){
   const u=S.custSelUnit;
   if(!u||!S.selProp){if(er)er.textContent="Unit error. Please go back and try again.";return;}
   try{
-    await db.collection("bookings").add({guest,email:email||S.user.email,phone:phone||"",unitId:uid,propertyId:S.selProp,checkIn:cin,checkOut:cout,status:"Pending",payment:"Unpaid",notes:notes||"",created:TS(),createdBy:S.user.email,bookedOnline:true});
+    await db.collection("bookings").add({guest,email:email||S.user.email,phone:phone||"",unitId:uid,propertyId:S.selProp,checkIn:cin,checkOut:cout,checkInTime:cit,checkOutTime:cot,status:"Pending",payment:"Unpaid",notes:notes||"",created:TS(),createdBy:S.user.email,bookedOnline:true});
     const tot=nts(cin,cout)*(u.price||0);
     const ok=document.getElementById("cb-ok");
     if(ok){ok.textContent="✅ Booking submitted! We'll confirm shortly.";setTimeout(()=>{S.custSelUnit=null;S.custTab="My Bookings";render();},2500);}
@@ -1241,6 +1264,54 @@ window.custBookUnit=async function(uid){
       window.open("https://wa.me/"+ph+"?text="+msg,"_blank");
     }
   }catch(e){if(er)er.textContent="Error: "+e.message;}
+};
+
+
+window.custPayAndBook=async function(uid){
+  const er=document.getElementById("cb-er");
+  const guest=document.getElementById("cb-guest")?.value?.trim();
+  const email=document.getElementById("cb-email")?.value?.trim()||S.user.email;
+  const cin=document.getElementById("cb-cin")?.value;
+  const cout=document.getElementById("cb-cout")?.value;
+  const cit=document.getElementById("cb-cit")?.value||"14:00";
+  const cot=document.getElementById("cb-cot")?.value||"11:00";
+  if(!guest){if(er)er.textContent="Your name is required.";return;}
+  if(!cin||!cout){if(er)er.textContent="Please select check-in and check-out dates.";return;}
+  if(cout<=cin){if(er)er.textContent="Check-out must be after check-in.";return;}
+  const u=S.custSelUnit;if(!u){if(er)er.textContent="Unit error.";return;}
+  const tot=nts(cin,cout)*(u.price||0);
+  if(!window.PaystackPop){if(er)er.textContent="Payment not available. Use 'Reserve Now, Pay Later'.";return;}
+  if(PAYSTACK_KEY.includes("REPLACE")){
+    // Demo mode — proceed without real payment
+    if(er)er.textContent="ℹ️ Paystack key not set — booking without payment for now.";
+    setTimeout(()=>custBookUnit(uid),400);
+    return;
+  }
+  window.PaystackPop.setup({
+    key:PAYSTACK_KEY,
+    email,
+    amount:tot*100,
+    currency:"NGN",
+    ref:"APT-"+Date.now(),
+    metadata:{guest,unit:u.name,checkIn:cin,checkOut:cout},
+    callback:async function(r){
+      try{
+        const phone=document.getElementById("cb-phone")?.value?.trim()||"";
+        const notes=document.getElementById("cb-notes")?.value?.trim()||"";
+        await db.collection("bookings").add({
+          guest,email,phone,unitId:uid,propertyId:S.selProp,
+          checkIn:cin,checkOut:cout,checkInTime:cit,checkOutTime:cot,
+          status:"Confirmed",payment:"Paid",
+          paystackRef:r.reference,notes,
+          created:TS(),createdBy:S.user.email,bookedOnline:true
+        });
+        const ok=document.getElementById("cb-ok");
+        if(ok){ok.textContent="✅ Payment successful! Booking confirmed.";
+          setTimeout(()=>{S.custSelUnit=null;S.custTab="My Bookings";render();},2000);}
+      }catch(e){if(er)er.textContent="Booking error: "+e.message;}
+    },
+    onClose:function(){if(er)er.textContent="Payment cancelled. Use 'Reserve Now, Pay Later' to book without payment.";}
+  }).openIframe();
 };
 
 // ── MY BOOKINGS ──
@@ -1309,11 +1380,60 @@ window.custBookRide=async function(){
 };
 
 // ── TRACK DRIVER ──
+let custMap=null,custDrvMarker=null,custPickupMarker=null,custDropMarker=null,custRtdbLsn=null;
+function initCustMap(cur){
+  const el=document.getElementById("cust-live-map");if(!el)return;
+  if(!custMap){
+    custMap=L.map("cust-live-map",{zoomControl:true}).setView([6.5244,3.3792],13);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OSM",maxZoom:19}).addTo(custMap);
+  }
+  // Add pickup/dropoff markers
+  if(cur?.pickup&&!custPickupMarker){
+    fetch("https://nominatim.openstreetmap.org/search?q="+encodeURIComponent(cur.pickup)+"&format=json&limit=1").then(r=>r.json()).then(d=>{
+      if(d[0]){const la=parseFloat(d[0].lat),ln=parseFloat(d[0].lon);
+        if(custPickupMarker)custPickupMarker.remove();
+        custPickupMarker=L.marker([la,ln],{icon:L.divIcon({html:'<div style="background:#22c55e;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px #0006"></div>',iconSize:[14,14],iconAnchor:[7,7]})}).addTo(custMap).bindPopup("📍 Pickup: "+cur.pickup);
+        if(custMap)custMap.setView([la,ln],14);
+      }
+    }).catch(()=>{});
+  }
+  if(cur?.dropoff&&!custDropMarker){
+    fetch("https://nominatim.openstreetmap.org/search?q="+encodeURIComponent(cur.dropoff)+"&format=json&limit=1").then(r=>r.json()).then(d=>{
+      if(d[0]){const la=parseFloat(d[0].lat),ln=parseFloat(d[0].lon);
+        if(custDropMarker)custDropMarker.remove();
+        custDropMarker=L.marker([la,ln],{icon:L.divIcon({html:'<div style="background:#ef4444;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px #0006"></div>',iconSize:[14,14],iconAnchor:[7,7]})}).addTo(custMap).bindPopup("🏁 Dropoff: "+cur.dropoff);
+      }
+    }).catch(()=>{});
+  }
+  // Listen to driver's live location
+  const drvId=cur?.driverId;
+  if(drvId&&custRtdbLsn!==drvId){
+    if(custRtdbLsn)rtdb.ref("drivers_live/"+custRtdbLsn).off();
+    custRtdbLsn=drvId;
+    rtdb.ref("drivers_live/"+drvId).on("value",snap=>{
+      const d=snap.val();if(!d||!d.lat)return;
+      const pos=[d.lat,d.lng];
+      if(!custDrvMarker){
+        const carIcon=L.divIcon({html:'<div style="background:#8b5cf6;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid #fff;box-shadow:0 3px 12px rgba(139,92,246,.6);animation:pu-a 1.5s infinite">🚗</div>',iconSize:[36,36],iconAnchor:[18,18]});
+        custDrvMarker=L.marker(pos,{icon:carIcon}).addTo(custMap).bindPopup((d.name||"Driver")+" · Live Location");
+      }else{custDrvMarker.setLatLng(pos);}
+      custMap.setView(pos,15);
+    });
+  }
+  setTimeout(()=>{if(custMap)custMap.invalidateSize();},150);
+}
+function cleanCustMap(){
+  if(custRtdbLsn){rtdb.ref("drivers_live/"+custRtdbLsn).off();custRtdbLsn=null;}
+  if(custMap){custMap.remove();custMap=null;}
+  custDrvMarker=null;custPickupMarker=null;custDropMarker=null;
+}
 function rCustTrack(){
   const mine=S.rides.filter(r=>r.createdBy===S.user.email);
   const active=mine.find(r=>r.status==="Active");
   const pending=mine.find(r=>r.status==="Pending");
   const cur=active||pending;
+  // Schedule map init after render
+  if(cur?.driverId)setTimeout(()=>initCustMap(cur),120);
   return'<div class="pg">Track Your Driver</div>'
   +(cur?'<div class="track-card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:15px;font-weight:700;font-family:\'Bricolage Grotesque\',sans-serif;color:'+(active?"#22c55e":"#f59e0b")+'">'+(active?"🚗 Ride In Progress":"⏳ Awaiting Driver")+'</div>'+rb(cur.status)+'</div>'
   +'<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"><div style="display:flex;gap:8px;align-items:center"><div style="width:10px;height:10px;border-radius:50%;background:#22c55e;flex-shrink:0"></div><div style="font-size:13px">'+esc(cur.pickup||"—")+'</div></div><div style="width:1px;height:14px;background:#2a2a3d;margin-left:5px"></div><div style="display:flex;gap:8px;align-items:center"><div style="width:10px;height:10px;border-radius:50%;background:#ef4444;flex-shrink:0"></div><div style="font-size:13px">'+esc(cur.dropoff||"—")+'</div></div></div>'
