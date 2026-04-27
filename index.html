@@ -268,6 +268,12 @@ const S={
 };
 const isAdmin=()=>S.profile?.role==="admin";
 const isCustomer=()=>S.profile?.role==="customer";
+// Safe unit selection — never put JSON in onclick attr
+window._unitMap={};
+window.selectUnit=function(uid){
+  const u=window._unitMap[uid];
+  if(u){S.custSelUnit=u;render();}
+};
 const isMgr=()=>["admin","manager"].includes(S.profile?.role);
 const isDrv=()=>S.profile?.role==="driver";
 const curProp=()=>S.props.find(p=>p._id===S.selProp)||null;
@@ -377,20 +383,20 @@ function loadBk(){
 function loadCustBk(){
   // Load all bookings created by this customer
   if(bkUnsub){bkUnsub();bkUnsub=null;}
-  bkUnsub=db.collection("bookings").where("createdBy","==",S.user.email).onSnapshot(snap=>{
+  bkUnsub=db.collection("bookings").where("email","==",S.user.email).onSnapshot(snap=>{
     S.bookings=snap.docs.map(d=>({...d.data(),_id:d.id})).sort((a,b)=>(b.created?.seconds||0)-(a.created?.seconds||0));
     render();
   },()=>{});
 }
 function loadCustRides(){
   if(rdUnsub){rdUnsub();rdUnsub=null;}
-  rdUnsub=db.collection("rides").where("createdBy","==",S.user.email).orderBy("created","desc").limit(50).onSnapshot(snap=>{
+  rdUnsub=db.collection("rides").where("createdBy","==",S.user.email).limit(50).onSnapshot(snap=>{
     S.rides=snap.docs.map(d=>({...d.data(),_id:d.id}));render();
   },()=>{});
 }
 
 function loadDrivers(){
-  db.collection("drivers").onSnapshot(snap=>{S.drivers=snap.docs.map(d=>({...d.data(),_id:d.id}));render();},()=>{});
+  db.collection("drivers").onSnapshot(snap=>{S.drivers=snap.docs.map(d=>({...d.data(),_id:d.id}));render();},()=>{S.drivers=[];});
 }
 function loadRides(){
   if(rdUnsub){rdUnsub();rdUnsub=null;}
@@ -402,7 +408,7 @@ function loadRides(){
 // ── GPS ── FIX: Added error callback to prevent watchPosition error
 let gpsW=null;
 function startGPS(rideId){
-  if(!navigator.geolocation){alert("GPS not available.");return;}
+  if(!navigator.geolocation){toast("GPS not available on this device.","warn");return;}
   S.isTracking=true;S.trackRide=rideId;
   gpsW=navigator.geolocation.watchPosition(
     async pos=>{
@@ -517,7 +523,7 @@ window.saveEditBk=async function(){
   const f=S.editForm;if(!f?.guest||!f?.checkIn||!f?.checkOut||f.checkOut<=f.checkIn)return;
   const{_id,...data}=f;
   try{await db.collection("bookings").doc(_id).update({...data,updatedBy:S.user.email,updatedAt:TS()});S.sel={...f};S.editMode=false;render();}
-  catch(e){alert("Error: "+e.message);}
+  catch(e){toast("Error: "+e.message);}
 };
 window.delBk=async function(id){
   try{await db.collection("bookings").doc(id).delete();}catch(_){}
@@ -526,14 +532,14 @@ window.delBk=async function(id){
 window.doPay=function(bid){
   const b=S.bookings.find(x=>x._id===bid);if(!b)return;
   const u=gUnit(b.unitId);const tot=nts(b.checkIn,b.checkOut)*(u?.price||0);
-  if(!window.PaystackPop){alert("Paystack not loaded.");return;}
-  if(PAYSTACK_KEY.includes("REPLACE")){alert("Add your Paystack key first.");return;}
+  if(!window.PaystackPop){toast("Paystack not loaded.","warn");return;}
+  if(PAYSTACK_KEY.includes("REPLACE")){toast("Paystack key not configured. Contact admin.","warn");return;}
   window.PaystackPop.setup({key:PAYSTACK_KEY,email:b.email||"guest@apartbook.ng",amount:tot*100,currency:"NGN",ref:"APT-"+Date.now(),
     onClose:()=>{},
     callback:async r=>{
       await db.collection("bookings").doc(bid).update({payment:"Paid",paystackRef:r.reference,updatedBy:S.user.email,updatedAt:TS()});
       if(S.sel?._id===bid)S.sel={...b,payment:"Paid"};
-      alert("✅ Payment confirmed! Ref: "+r.reference);render();
+      toast("✅ Payment confirmed! Ref: "+r.reference,"ok");render();
     }
   }).openIframe();
 };
@@ -550,7 +556,7 @@ window.addProp=async function(){
 };
 window.addUnit=async function(pid){
   const n=document.getElementById("un")?.value?.trim();const pr=Number(document.getElementById("up")?.value)||0;
-  if(!n||!pr){alert("Name and price required.");return;}
+  if(!n||!pr){toast("Name and price required.","warn");return;}
   const prop=S.props.find(p=>p._id===pid);if(!prop)return;
   const nu={id:"U"+Date.now(),name:n,floor:document.getElementById("uf")?.value?.trim()||"",beds:Number(document.getElementById("ub")?.value)||1,price:pr,colorIdx:(prop.units?.length||0)%PC.length};
   await db.collection("properties").doc(pid).update({units:[...(prop.units||[]),nu]});
@@ -594,7 +600,7 @@ window.addRide=async function(){
   const ef=Math.round(calcFare(5,0,S.pricing,isNt(),f.isAirport));
   try{
     const ref=await db.collection("rides").add({...f,status:"Pending",fare:0,estimatedFare:ef,distanceKm:0,durationMins:0,driverName:drv?.name||"",driverPhone:drv?.phone||"",vehicle:drv?.vehicle||"",plate:drv?.plate||"",createdBy:S.user.email,created:TS(),paymentStatus:"Unpaid"});
-    if(f.driverId)await db.collection("drivers").doc(f.driverId).update({status:"On Ride",currentRideId:ref.id});
+    if(f.driverId)db.collection("drivers").doc(f.driverId).update({status:"On Ride",currentRideId:ref.id,uid:f.driverId}).catch(()=>{});
     const msg=encodeURIComponent("Hello "+f.passenger+"! 🚗\n\nYour ride is confirmed.\n\n📍 Pickup: "+f.pickup+"\n📍 Dropoff: "+f.dropoff+"\n🚙 Driver: "+(drv?.name||"TBA")+" · "+(drv?.plate||"TBA")+"\n📞 "+(drv?.phone||"TBA")+"\n⏰ "+f.time+"\n\nThank you! 🙏");
     ["r-ps","r-ph","r-pu","r-do","r-no"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
     const de=document.getElementById("r-dr");if(de)de.selectedIndex=0;
@@ -608,8 +614,8 @@ window.startRide=async function(id){
   try{
     await db.collection("rides").doc(id).update({status:"Active",startedAt:TS(),startTime:nowt(),startDate:tod()});
     if(S.sel?._id===id)S.sel={...S.sel,status:"Active"};
-    startGPS(id);render();alert("🚗 Ride started! GPS tracking active.");
-  }catch(e){alert("Error: "+e.message);}
+    startGPS(id);render();toast("🚗 Ride started! GPS tracking active.","ok");
+  }catch(e){toast("Error: "+e.message);}
 };
 window.completeRide=async function(id){
   const ride=S.rides.find(r=>r._id===id);if(!ride)return;
@@ -619,18 +625,18 @@ window.completeRide=async function(id){
   if(!confirm("Fare: "+fmt(fare)+"\n"+km+"km · "+wt+"min"+( night?" · 🌙 night":"")+(ride.isAirport?" · ✈️ airport":"")+"\n\nConfirm?"))return;
   try{
     await db.collection("rides").doc(id).update({status:"Completed",fare,distanceKm:km,durationMins:wt,completedAt:TS(),endTime:nowt(),endDate:tod(),isNight:night,paymentStatus:"Paid"});
-    if(ride.driverId)await db.collection("drivers").doc(ride.driverId).update({status:"Online",currentRideId:null,totalRides:firebase.firestore.FieldValue.increment(1),totalEarnings:firebase.firestore.FieldValue.increment(fare)});
+    if(ride.driverId)db.collection("drivers").doc(ride.driverId).update({status:"Online",currentRideId:null,totalRides:firebase.firestore.FieldValue.increment(1),totalEarnings:firebase.firestore.FieldValue.increment(fare)}).catch(()=>{});
     stopGPS();if(S.sel?._id===id)S.sel={...S.sel,status:"Completed",fare};render();
-  }catch(e){alert("Error: "+e.message);}
+  }catch(e){if(e.code==="permission-denied"){toast("Ask your manager to confirm this action.","warn");}else{toast("Error: "+e.message);}}
 };
 window.cancelRide=async function(id){
   if(!confirm("Cancel ride?"))return;
   const ride=S.rides.find(r=>r._id===id);
   try{
     await db.collection("rides").doc(id).update({status:"Cancelled",cancelledAt:TS()});
-    if(ride?.driverId)await db.collection("drivers").doc(ride.driverId).update({status:"Online",currentRideId:null});
+    if(ride?.driverId)db.collection("drivers").doc(ride.driverId).update({status:"Online",currentRideId:null}).catch(()=>{});
     if(S.sel?._id===id)S.sel={...S.sel,status:"Cancelled"};render();
-  }catch(e){alert("Error: "+e.message);}
+  }catch(e){toast("Error: "+e.message);}
 };
 window.delRide=async function(id){
   try{await db.collection("rides").doc(id).delete();}catch(_){}
@@ -648,7 +654,7 @@ window.addDrv=async function(){
   }catch(e){if(er)er.textContent="Error: "+e.message;}
 };
 window.updDrvStat=async function(id,status){
-  try{await db.collection("drivers").doc(id).update({status});}catch(e){alert(e.message);}
+  try{await db.collection("drivers").doc(id).update({status});}catch(e){toast(e.message);}
   if(S.sel?._id===id)S.sel={...S.sel,status};render();
 };
 window.delDrv=async function(id){
@@ -659,7 +665,7 @@ window.delDrv=async function(id){
 window.saveSett=async function(){
   const p={baseFare:Number(document.getElementById("s-bf")?.value)||DP.baseFare,perKm:Number(document.getElementById("s-km")?.value)||DP.perKm,perMinWaiting:Number(document.getElementById("s-mn")?.value)||DP.perMinWaiting,minFare:Number(document.getElementById("s-mf")?.value)||DP.minFare,nightSurcharge:Number(document.getElementById("s-ns")?.value)||DP.nightSurcharge,airportFee:Number(document.getElementById("s-af")?.value)||DP.airportFee,bookingFee:Number(document.getElementById("s-bk")?.value)||DP.bookingFee};
   try{await db.collection("settings").doc("pricing").set(p);const ok=document.getElementById("s-ok");if(ok){ok.textContent="✅ Saved!";setTimeout(()=>{if(ok)ok.textContent="";},3000);}}
-  catch(e){alert(e.message);}
+  catch(e){toast(e.message);}
 };
 window.updateRole=async function(uid,role){await db.collection("users").doc(uid).update({role});};
 
@@ -681,7 +687,7 @@ function dlCSV(rows,fn){
   const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=fn;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
 }
 window.genPDF=function(mode){
-  if(!window.jspdf){alert("PDF loading. Try again.");return;}
+  if(!window.jspdf){toast("PDF still loading — try again in a moment.","warn");return;}
   const{jsPDF}=window.jspdf;const doc=new jsPDF();const pfmt=n=>"NGN "+Number(n).toLocaleString();
   if(mode==="property"){
     const mb=S.bookings.filter(b=>{const d=new Date(b.checkIn);return d.getMonth()===S.rpm&&d.getFullYear()===S.rpy;});
@@ -924,14 +930,16 @@ function rDriverDash(){
 }
 
 window.setDrvOnline=async function(status){
-  const myDriver=S.drivers.find(d=>d.name===S.profile?.name||d.phone===S.profile?.phone);
-  if(!myDriver){alert("Your driver profile is not set up. Ask admin to add you as a driver first.");return;}
+  const myDriver=S.drivers.find(d=>d.uid===S.user.uid||d.phone===S.profile?.phone||d.name===S.profile?.name);
+  if(!myDriver){toast("Your driver profile is not set up. Ask admin to add you as a driver first.","warn");return;}
+  // Also store status in user profile (always works)
+  await db.collection("users").doc(S.user.uid).update({driverStatus:status==="online"?"Online":"Offline"}).catch(()=>{});
   try{
-    await db.collection("drivers").doc(myDriver._id).update({status:status==="online"?"Online":"Offline"});
+    await db.collection("drivers").doc(myDriver._id).update({status:status==="online"?"Online":"Offline",uid:S.user.uid});
     if(status==="online"&&!S.isTracking)startGPS("online-"+Date.now());
     if(status==="offline")stopGPS();
     render();
-  }catch(e){alert("Error: "+e.message);}
+  }catch(e){toast("Error: "+e.message);}
 };
 
 window.drvStartRide=async function(id){
@@ -940,7 +948,7 @@ window.drvStartRide=async function(id){
     if(S.sel?._id===id)S.sel={...S.sel,status:"Active"};
     if(!S.isTracking)startGPS(id);
     render();
-  }catch(e){alert("Error: "+e.message);}
+  }catch(e){toast("Error: "+e.message);}
 };
 
 // ── TRANSPORT DASHBOARD ──
@@ -1175,7 +1183,8 @@ function rCustBrowse(){
   +us.map(u=>{
     const c=pc(u.colorIdx||0);const io=oc.has(u.id);const ib=!io&&bk.has(u.id);
     const avail=!io;
-    return'<div class="unit-browse-card'+(io?" ":(ib?" ":""))+(avail?' unit-browse-card-avail':"")+'" style="opacity:'+(io?.6:1)+';cursor:'+(io?"not-allowed":"pointer")+'" onclick="'+( io?"":'S.custSelUnit='+JSON.stringify(u)+';render()')+'">'
+    window._unitMap[u.id]=u;
+    return'<div class="unit-browse-card'+(io?" ":(ib?" ":""))+(avail?' unit-browse-card-avail':"")+'" style="opacity:'+(io?.6:1)+';cursor:'+(io?"not-allowed":"pointer")+'" onclick="'+(io?"":"selectUnit('"+u.id+"')")+'">'
     +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
     +'<div style="display:flex;gap:13px;align-items:flex-start;flex:1"><div style="width:42px;height:42px;border-radius:10px;flex-shrink:0;background:'+c.b+';border:1.5px solid '+c.c+'55;display:flex;align-items:center;justify-content:center;font-size:18px">🏠</div>'
     +'<div style="flex:1"><div style="font-size:15px;font-weight:700;color:'+c.c+';font-family:\'Bricolage Grotesque\',sans-serif;margin-bottom:3px">'+esc(u.name)+'</div>'
@@ -1227,7 +1236,7 @@ window.custBookUnit=async function(uid){
 
 // ── MY BOOKINGS ──
 function rCustBookings(){
-  const mine=S.bookings.filter(b=>b.email===S.user.email||b.createdBy===S.user.email);
+  const mine=S.bookings.filter(b=>b.email===S.user.email||b.email===S.profile?.email||b.createdBy===S.user.email);
   return'<div class="pg">My Bookings</div>'
   +(mine.length===0?'<div class="card"><div style="text-align:center;padding:28px"><div style="font-size:40px;margin-bottom:12px">🏠</div><div style="font-size:16px;font-weight:700;font-family:\'Bricolage Grotesque\',sans-serif;margin-bottom:6px">No bookings yet</div><div style="font-size:13px;color:#94a3b8;margin-bottom:18px">Browse apartments and make your first booking!</div><button class="btnp" onclick="setCustTab(\'Browse\')">Browse Apartments →</button></div></div>':"")
   +mine.map(b=>{
@@ -1308,7 +1317,28 @@ function rCustTrack(){
 }
 
 
+
+// ── Toast notification system (no more alert() popups) ──
+function toast(msg, type='error'){
+  const existing=document.getElementById('_toast');
+  if(existing)existing.remove();
+  const t=document.createElement('div');
+  t.id='_toast';
+  const bg=type==='ok'?'rgba(34,197,94,.95)':type==='warn'?'rgba(245,158,11,.95)':'rgba(239,68,68,.92)';
+  t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:'+bg+';color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:9999;max-width:90vw;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.5);font-family:inherit;transition:opacity .3s';
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},3500);
+}
+
+// ── Debounced render to prevent blink from simultaneous listener fires ──
+let _renderPending=false;
 function render(){
+  if(_renderPending)return;
+  _renderPending=true;
+  requestAnimationFrame(()=>{_renderPending=false;_doRender();});
+}
+function _doRender(){
   const app=document.getElementById("app");if(!app)return;
   if(S.user===null){app.innerHTML=rLogin();return;}
   if(!S.user||!S.profile){app.innerHTML='<div class="sp">'+LP(48)+'<div style="width:32px;height:32px;border:3px solid var(--mc);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-top:8px"></div><p style="margin-top:10px">Loading ApartBook Pro…</p></div>';return;}
