@@ -1567,3 +1567,35 @@ function rCustTrack(){
     +'</div>').join("")
   );
 }
+
+
+
+// ── AUTH STATE BOOT SEQUENCE ──
+auth.onAuthStateChanged(user=>{
+  if(user){
+    S.user=user;
+    loadProfile();
+    loadPricing();
+  }else{
+    // Signed out — reset all state
+    S.user=null;S.profile=null;S.mode="property";S.tab="Dashboard";
+    S.props=[];S.selProp=null;S.bookings=[];S.allBookings=[];
+    S.rides=[];S.drivers=[];S.staff=[];S.auditLog=[];
+    S.custTab="Browse";S.custSelUnit=null;
+    S.loginTab="staff";S.lerr="";S.lbusy=false;
+    _propsListening=false;_drvsListening=false;_pricingListening=false;
+    if(_availUnsub){_availUnsub();_availUnsub=null;}
+    if(bkUnsub){bkUnsub();bkUnsub=null;}
+    if(rdUnsub){rdUnsub();rdUnsub=null;}
+    stopGPS();cleanCustMap();
+    document.body.className="";
+    render();
+  }
+});
+
+// ── INITIAL RENDER ──
+render();
+
+</script>
+</body>
+</html>
