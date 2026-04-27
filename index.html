@@ -352,7 +352,10 @@ function loadProfile(){
     if(isDrv()){S.mode="transport";document.body.className="tm";}
     if(isCustomer()){
       S.mode="customer";if(!S.custTab)S.custTab="Browse";
-      loadProps();loadCustBk();loadCustRides();loadPricing();loadDrivers();setTimeout(()=>{if(S.selProp)loadAllBkForAvail();else setTimeout(()=>loadAllBkForAvail(),2000);},800);
+      loadProps();loadCustBk();loadCustRides();loadPricing();loadDrivers();
+      // Load availability — retry after props are ready
+      function tryAvail(attempts){if(S.selProp){loadAllBkForAvail();}else if(attempts>0){setTimeout(()=>tryAvail(attempts-1),1000);}}
+      setTimeout(()=>tryAvail(5),1200);
     }else{
       loadProps();loadDrivers();loadRides();
     }
@@ -372,13 +375,24 @@ let _availUnsub=null;
 function loadAllBkForAvail(){
   if(_availUnsub){_availUnsub();_availUnsub=null;}
   if(!S.selProp)return;
+  // Try realtime first (works if Firestore rules allow isAuth() to read bookings)
   _availUnsub=db.collection("bookings").where("propertyId","==",S.selProp).onSnapshot(snap=>{
     S.allBookings=snap.docs.map(d=>({...d.data(),_id:d.id}));
     render();
-  },()=>{
-    // fallback: try without realtime
-    db.collection("bookings").where("propertyId","==",S.selProp).get().then(snap=>{
-      S.allBookings=snap.docs.map(d=>({...d.data(),_id:d.id}));render();
+  },err=>{
+    // Permission denied — try to at least get the property's availability map
+    // stored on the property doc itself (updated by admin actions)
+    db.collection("properties").doc(S.selProp).get().then(snap=>{
+      const avail=snap.data()?.unitAvailability||{};
+      // Convert availability map to booking-like array
+      const t=tod();
+      S.allBookings=Object.entries(avail).map(([unitId,info])=>({
+        unitId,propertyId:S.selProp,
+        status:info.status||"Confirmed",
+        checkIn:info.checkIn||t,
+        checkOut:info.checkOut||"2099-12-31"
+      }));
+      render();
     }).catch(()=>{});
   });
 }
@@ -401,6 +415,7 @@ function loadBk(){
   if(!S.selProp)return;
   bkUnsub=db.collection("bookings").where("propertyId","==",S.selProp).onSnapshot(snap=>{
     S.bookings=snap.docs.map(d=>({...d.data(),_id:d.id})).sort((a,b)=>(b.created?.seconds||0)-(a.created?.seconds||0));
+    syncAvailability();
     render();
   },()=>{db.collection("bookings").where("propertyId","==",S.selProp).get().then(snap=>{S.bookings=snap.docs.map(d=>({...d.data(),_id:d.id}));render();});});
 }
@@ -544,7 +559,7 @@ window.addBooking=async function(){
   }catch(e){se("Error: "+e.message);}
 };
 window.qbStat=async function(id,status){
-  try{await db.collection("bookings").doc(id).update({status,updatedBy:S.user.email,updatedAt:TS()});}catch(_){}
+  try{await db.collection("bookings").doc(id).update({status,updatedBy:S.user.email,updatedAt:TS()});syncAvailability();}catch(_){}
   if(S.sel?._id===id)S.sel={...S.sel,status};render();
 };
 window.saveEditBk=async function(){
@@ -1247,6 +1262,8 @@ window.custBookUnit=async function(uid){
   const phone=document.getElementById("cb-phone")?.value?.trim();
   const cin=document.getElementById("cb-cin")?.value;
   const cout=document.getElementById("cb-cout")?.value;
+  const cit=document.getElementById("cb-cit")?.value||"14:00";
+  const cot=document.getElementById("cb-cot")?.value||"11:00";
   const notes=document.getElementById("cb-notes")?.value?.trim();
   if(!guest){if(er)er.textContent="Your name is required.";return;}
   if(!cin||!cout){if(er)er.textContent="Please select check-in and check-out dates.";return;}
@@ -1282,9 +1299,12 @@ window.custPayAndBook=async function(uid){
   const tot=nts(cin,cout)*(u.price||0);
   if(!window.PaystackPop){if(er)er.textContent="Payment not available. Use 'Reserve Now, Pay Later'.";return;}
   if(PAYSTACK_KEY.includes("REPLACE")){
-    // Demo mode — proceed without real payment
-    if(er)er.textContent="ℹ️ Paystack key not set — booking without payment for now.";
-    setTimeout(()=>custBookUnit(uid),400);
+    // Demo mode — proceed without real payment, pass all captured values
+    const prefill={guest,email,phone:document.getElementById("cb-phone")?.value?.trim()||"",
+      cin,cout,cit,cot,notes:document.getElementById("cb-notes")?.value?.trim()||""};
+    if(er)er.textContent="";
+    toast("Paystack not configured — reserving without payment.","warn");
+    custBookUnit(uid, prefill);
     return;
   }
   window.PaystackPop.setup({
@@ -1380,125 +1400,170 @@ window.custBookRide=async function(){
 };
 
 // ── TRACK DRIVER ──
-let custMap=null,custDrvMarker=null,custPickupMarker=null,custDropMarker=null,custRtdbLsn=null;
-function initCustMap(cur){
-  const el=document.getElementById("cust-live-map");if(!el)return;
+let custMap=null,custDrvMarker=null,custPickupMk=null,custDropMk=null,custRtdbLsn=null,custRouteLine=null;
+
+function gcIcon(emoji,color,size,pulse){
+  return L.divIcon({
+    html:'<div style="background:'+color+';border-radius:50%;width:'+size+'px;height:'+size+'px;display:flex;align-items:center;justify-content:center;font-size:'+(size*.55)+'px;border:3px solid #fff;box-shadow:0 3px 14px rgba(0,0,0,.45)">'+emoji+'</div>',
+    iconSize:[size,size],iconAnchor:[size/2,size/2],popupAnchor:[0,-size/2]
+  });
+}
+
+async function drawRoute(map,fromLatLng,toLatLng){
+  if(custRouteLine){map.removeLayer(custRouteLine);custRouteLine=null;}
+  try{
+    const url='https://router.project-osrm.org/route/v1/driving/'+fromLatLng[1]+','+fromLatLng[0]+';'+toLatLng[1]+','+toLatLng[0]+'?overview=full&geometries=geojson';
+    const res=await fetch(url);const data=await res.json();
+    if(data.routes?.[0]){
+      const coords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+      custRouteLine=L.polyline(coords,{color:'#8b5cf6',weight:5,opacity:.85,lineCap:'round'}).addTo(map);
+      const dur=Math.round(data.routes[0].duration/60);
+      const dist=(data.routes[0].distance/1000).toFixed(1);
+      return{eta:dur,dist};
+    }
+  }catch(e){}
+  return null;
+}
+
+async function geocode(q){
+  try{
+    const r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=1&countrycodes=ng');
+    const d=await r.json();if(d[0])return[parseFloat(d[0].lat),parseFloat(d[0].lon)];
+  }catch(e){}
+  return null;
+}
+
+async function initCustMap(cur){
+  const el=document.getElementById('cust-live-map');
+  if(!el){setTimeout(()=>initCustMap(cur),300);return;}
   if(!custMap){
-    custMap=L.map("cust-live-map",{zoomControl:true}).setView([6.5244,3.3792],13);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OSM",maxZoom:19}).addTo(custMap);
+    custMap=L.map('cust-live-map',{zoomControl:false,attributionControl:false}).setView([6.5244,3.3792],13);
+    // Try dark tiles, fall back to standard OSM if blocked
+    const darkTile=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19});
+    const osmTile=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19});
+    darkTile.addTo(custMap);
+    darkTile.on('tileerror',()=>{custMap.removeLayer(darkTile);osmTile.addTo(custMap);});
+    L.control.zoom({position:'topright'}).addTo(custMap);
   }
-  // Add pickup/dropoff markers
-  if(cur?.pickup&&!custPickupMarker){
-    fetch("https://nominatim.openstreetmap.org/search?q="+encodeURIComponent(cur.pickup)+"&format=json&limit=1").then(r=>r.json()).then(d=>{
-      if(d[0]){const la=parseFloat(d[0].lat),ln=parseFloat(d[0].lon);
-        if(custPickupMarker)custPickupMarker.remove();
-        custPickupMarker=L.marker([la,ln],{icon:L.divIcon({html:'<div style="background:#22c55e;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px #0006"></div>',iconSize:[14,14],iconAnchor:[7,7]})}).addTo(custMap).bindPopup("📍 Pickup: "+cur.pickup);
-        if(custMap)custMap.setView([la,ln],14);
-      }
-    }).catch(()=>{});
+  // Multiple invalidateSize calls to handle async DOM rendering
+  [100,250,500].forEach(d=>setTimeout(()=>{if(custMap)custMap.invalidateSize();},d));
+
+  const bounds=[];
+
+  // Geocode and place pickup marker
+  if(cur?.pickup&&!custPickupMk){
+    const pos=await geocode(cur.pickup);
+    if(pos){
+      custPickupMk=L.marker(pos,{icon:gcIcon('🟢','#22c55e',30)}).addTo(custMap).bindPopup('<b>Pickup</b><br>'+esc(cur.pickup));
+      bounds.push(pos);
+    }
+  }else if(custPickupMk)bounds.push(custPickupMk.getLatLng());
+
+  // Geocode and place dropoff marker
+  if(cur?.dropoff&&!custDropMk){
+    const pos=await geocode(cur.dropoff);
+    if(pos){
+      custDropMk=L.marker(pos,{icon:gcIcon('🔴','#ef4444',30)}).addTo(custMap).bindPopup('<b>Dropoff</b><br>'+esc(cur.dropoff));
+      bounds.push(pos);
+    }
+  }else if(custDropMk)bounds.push(custDropMk.getLatLng());
+
+  // Draw route between pickup and dropoff
+  if(custPickupMk&&custDropMk&&!custRouteLine){
+    const pu=custPickupMk.getLatLng(),dr=custDropMk.getLatLng();
+    const info=await drawRoute(custMap,[pu.lat,pu.lng],[dr.lat,dr.lng]);
+    if(info){
+      const etaEl=document.getElementById('cust-eta');
+      if(etaEl)etaEl.innerHTML='⏱ <strong>ETA: ~'+info.eta+' min</strong> &nbsp;·&nbsp; '+info.dist+' km';
+    }
   }
-  if(cur?.dropoff&&!custDropMarker){
-    fetch("https://nominatim.openstreetmap.org/search?q="+encodeURIComponent(cur.dropoff)+"&format=json&limit=1").then(r=>r.json()).then(d=>{
-      if(d[0]){const la=parseFloat(d[0].lat),ln=parseFloat(d[0].lon);
-        if(custDropMarker)custDropMarker.remove();
-        custDropMarker=L.marker([la,ln],{icon:L.divIcon({html:'<div style="background:#ef4444;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px #0006"></div>',iconSize:[14,14],iconAnchor:[7,7]})}).addTo(custMap).bindPopup("🏁 Dropoff: "+cur.dropoff);
-      }
-    }).catch(()=>{});
-  }
-  // Listen to driver's live location
+
+  // Fit map to markers
+  if(bounds.length>1)custMap.fitBounds(bounds,{padding:[30,30]});
+  else if(bounds.length===1)custMap.setView(bounds[0],14);
+
+  // Real-time driver position from Firebase RTDB
   const drvId=cur?.driverId;
   if(drvId&&custRtdbLsn!==drvId){
-    if(custRtdbLsn)rtdb.ref("drivers_live/"+custRtdbLsn).off();
+    if(custRtdbLsn){rtdb.ref('drivers_live/'+custRtdbLsn).off();custRtdbLsn=null;}
     custRtdbLsn=drvId;
-    rtdb.ref("drivers_live/"+drvId).on("value",snap=>{
+    rtdb.ref('drivers_live/'+drvId).on('value',snap=>{
       const d=snap.val();if(!d||!d.lat)return;
       const pos=[d.lat,d.lng];
       if(!custDrvMarker){
-        const carIcon=L.divIcon({html:'<div style="background:#8b5cf6;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid #fff;box-shadow:0 3px 12px rgba(139,92,246,.6);animation:pu-a 1.5s infinite">🚗</div>',iconSize:[36,36],iconAnchor:[18,18]});
-        custDrvMarker=L.marker(pos,{icon:carIcon}).addTo(custMap).bindPopup((d.name||"Driver")+" · Live Location");
+        custDrvMarker=L.marker(pos,{icon:gcIcon('🚗','#8b5cf6',44,true),zIndexOffset:1000}).addTo(custMap).bindPopup((d.name||'Driver')+' — Live');
       }else{custDrvMarker.setLatLng(pos);}
-      custMap.setView(pos,15);
+      custMap.panTo(pos,{animate:true,duration:0.8});
+      // Update ETA from driver position
+      const drEl=document.getElementById('cust-eta');
+      if(drEl&&custDropMk){
+        const dl=custDropMk.getLatLng();
+        const distKm=custMap.distance(pos,[dl.lat,dl.lng])/1000;
+        const etaMin=Math.ceil(distKm/0.5);
+        drEl.innerHTML='⏱ <strong>ETA: ~'+etaMin+' min</strong>&nbsp;·&nbsp;'+distKm.toFixed(1)+' km away';
+      }
     });
   }
-  setTimeout(()=>{if(custMap)custMap.invalidateSize();},150);
 }
+
 function cleanCustMap(){
-  if(custRtdbLsn){rtdb.ref("drivers_live/"+custRtdbLsn).off();custRtdbLsn=null;}
+  if(custRtdbLsn){rtdb.ref('drivers_live/'+custRtdbLsn).off();custRtdbLsn=null;}
+  if(custRouteLine&&custMap){custMap.removeLayer(custRouteLine);custRouteLine=null;}
   if(custMap){custMap.remove();custMap=null;}
-  custDrvMarker=null;custPickupMarker=null;custDropMarker=null;
+  custDrvMarker=null;custPickupMk=null;custDropMk=null;
 }
+
 function rCustTrack(){
   const mine=S.rides.filter(r=>r.createdBy===S.user.email);
   const active=mine.find(r=>r.status==="Active");
   const pending=mine.find(r=>r.status==="Pending");
   const cur=active||pending;
-  // Schedule map init after render
-  if(cur?.driverId)setTimeout(()=>initCustMap(cur),120);
+
+  // Always init map after render (even just to show pickup/dropoff)
+  if(cur)setTimeout(()=>initCustMap(cur),350);
+
   return'<div class="pg">Track Your Driver</div>'
-  +(cur?'<div class="track-card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:15px;font-weight:700;font-family:\'Bricolage Grotesque\',sans-serif;color:'+(active?"#22c55e":"#f59e0b")+'">'+(active?"🚗 Ride In Progress":"⏳ Awaiting Driver")+'</div>'+rb(cur.status)+'</div>'
-  +'<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"><div style="display:flex;gap:8px;align-items:center"><div style="width:10px;height:10px;border-radius:50%;background:#22c55e;flex-shrink:0"></div><div style="font-size:13px">'+esc(cur.pickup||"—")+'</div></div><div style="width:1px;height:14px;background:#2a2a3d;margin-left:5px"></div><div style="display:flex;gap:8px;align-items:center"><div style="width:10px;height:10px;border-radius:50%;background:#ef4444;flex-shrink:0"></div><div style="font-size:13px">'+esc(cur.dropoff||"—")+'</div></div></div>'
-  +(cur.driverName?'<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:12px;margin-bottom:12px"><div style="font-size:11px;color:#64748b;margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Your Driver</div><div style="display:flex;align-items:center;gap:10px">'+av(cur.driverName,38,"#0d1f36","#0ea5e944","#38bdf8")+'<div><div style="font-size:14px;font-weight:600">'+esc(cur.driverName)+'</div><div style="font-size:12px;color:#0ea5e9">'+esc(cur.vehicle||"")+(cur.plate?" · "+esc(cur.plate):"")+'</div></div></div></div>':"<div style='font-size:13px;color:#94a3b8;margin-bottom:12px;padding:12px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:9px'>⏳ A driver will be assigned shortly. You'll receive a WhatsApp notification.</div>")
-  +(active&&cur.driverPhone?'<button class="bw" onclick="window.open(\'https://wa.me/'+wa(cur.driverPhone)+'\',\'_blank\')">💬 Message Driver on WhatsApp</button>':"")
-  +'<div style="display:flex;gap:8px;flex-wrap:wrap"><a href="https://www.openstreetmap.org/search?query='+encodeURIComponent(cur.pickup||"")+'" target="_blank" style="flex:1;min-width:120px;padding:10px;background:rgba(14,165,233,.08);border:1.5px solid rgba(14,165,233,.3);border-radius:9px;color:#38bdf8;font-size:12px;font-weight:600;text-align:center;text-decoration:none">🗺️ Pickup Map</a><a href="https://www.openstreetmap.org/search?query='+encodeURIComponent(cur.dropoff||"")+'" target="_blank" style="flex:1;min-width:120px;padding:10px;background:rgba(34,197,94,.08);border:1.5px solid rgba(34,197,94,.3);border-radius:9px;color:#22c55e;font-size:12px;font-weight:600;text-align:center;text-decoration:none">🗺️ Dropoff Map</a></div></div>'
-  :'<div class="card"><div style="text-align:center;padding:28px"><div style="font-size:40px;margin-bottom:12px">📍</div><div style="font-size:16px;font-weight:700;font-family:\'Bricolage Grotesque\',sans-serif;margin-bottom:6px">No active ride</div><div style="font-size:13px;color:#94a3b8;margin-bottom:18px">Book a ride and your driver will appear here once assigned.</div><button class="btnp" onclick="setCustTab(\'Book a Ride\')" style="background:linear-gradient(135deg,#0ea5e9,#0369a1)">Book a Ride →</button></div></div>')
-  +'<div class="pg" style="margin-top:6px">My Recent Rides</div>'
-  +(mine.length===0?'<div class="card"><div class="em">No rides yet.</div></div>':mine.slice(0,6).map(r=>'<div class="card" style="padding:14px 16px;margin-bottom:9px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'+rb(r.status)+'<span style="font-size:12px;color:#94a3b8">'+(r.date||"")+'</span></div><div style="font-size:12px;font-weight:500;margin-bottom:4px">'+esc(r.pickup||"—")+' → '+esc(r.dropoff||"—")+'</div><div style="font-size:12px;color:#94a3b8">🚗 '+esc(r.driverName||"Driver TBA")+' · '+esc(r.plate||"")+'</div>'+(r.fare?'<div style="font-size:14px;font-weight:700;color:#22c55e;margin-top:5px">'+fmt(r.fare)+'</div>':"")+'</div>').join(""));
+  +(cur?
+    // ── Map (Bolt-style, full width) ──
+    '<div style="border-radius:16px;overflow:hidden;margin-bottom:14px;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.6)">'
+    +'<div id="cust-live-map" style="height:300px;background:#0a0a18;width:100%"></div>'
+    +'<div id="cust-eta" style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(10,10,24,.88);backdrop-filter:blur(8px);border:1px solid rgba(139,92,246,.4);border-radius:20px;padding:7px 16px;font-size:12px;color:#c4b5fd;white-space:nowrap;z-index:500">Calculating route…</div>'
+    +'</div>'
+    // ── Status card ──
+    +'<div class="track-card" style="margin-bottom:14px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'
+    +'<div style="font-size:15px;font-weight:700;font-family:\'Bricolage Grotesque\',sans-serif;color:'+(active?"#22c55e":"#f59e0b")+'">'+(active?"🚗 Ride In Progress":"⏳ Awaiting Driver Assignment")+'</div>'+rb(cur.status)+'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">'
+    +'<div style="display:flex;gap:10px;align-items:center"><div style="width:12px;height:12px;border-radius:50%;background:#22c55e;flex-shrink:0;box-shadow:0 0 6px #22c55e66"></div><div style="font-size:13px;font-weight:500">'+esc(cur.pickup||"—")+'</div></div>'
+    +'<div style="width:2px;height:16px;background:linear-gradient(#22c55e,#ef4444);margin-left:5px;border-radius:2px"></div>'
+    +'<div style="display:flex;gap:10px;align-items:center"><div style="width:12px;height:12px;border-radius:50%;background:#ef4444;flex-shrink:0;box-shadow:0 0 6px #ef444466"></div><div style="font-size:13px;font-weight:500">'+esc(cur.dropoff||"—")+'</div></div>'
+    +'</div>'
+    +(cur.driverName?
+      '<div style="background:rgba(255,255,255,.05);border-radius:12px;padding:13px;margin-bottom:12px;border:1px solid rgba(139,92,246,.2)">'
+      +'<div style="font-size:10px;color:#64748b;margin-bottom:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">Your Driver</div>'
+      +'<div style="display:flex;align-items:center;gap:12px">'+av(cur.driverName,42,"#110a2e","#8b5cf644","#c4b5fd")
+      +'<div><div style="font-size:15px;font-weight:700">'+esc(cur.driverName)+'</div>'
+      +'<div style="font-size:12px;color:#8b5cf6;margin-top:2px">'+esc(cur.vehicle||"")+(cur.plate?" · <strong>"+esc(cur.plate)+"</strong>":"")+'</div></div>'
+      +(cur.driverPhone?'<button class="bw" style="margin-left:auto;width:auto;padding:9px 13px;margin-bottom:0;flex-shrink:0" onclick="window.open(\'https://wa.me/\'+wa(cur.driverPhone||\"\")+\'\',\'_blank\')">💬</button>':"")
+      +'</div></div>'
+      :"<div style='font-size:13px;color:#f59e0b;padding:11px 14px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;margin-bottom:12px'>⏳ Driver being assigned — you'll get a WhatsApp update.</div>"
+    )
+    +'</div>'
+  :
+    '<div class="card"><div style="text-align:center;padding:28px">'
+    +'<div style="font-size:40px;margin-bottom:12px">📍</div>'
+    +'<div style="font-size:16px;font-weight:700;font-family:\'Bricolage Grotesque\',sans-serif;margin-bottom:6px">No active ride</div>'
+    +'<div style="font-size:13px;color:#94a3b8;margin-bottom:18px">Book a ride and your driver will appear here with live tracking.</div>'
+    +'<button class="btnp" onclick="custGoRide()" style="background:linear-gradient(135deg,#0ea5e9,#0369a1)">Book a Ride →</button>'
+    +'</div></div>'
+  )
+  +'<div class="pg" style="margin-top:8px">My Ride History</div>'
+  +(mine.length===0?'<div class="card"><div class="em">No rides yet.</div></div>':
+    mine.slice(0,6).map(r=>'<div class="card" style="padding:14px 16px;margin-bottom:9px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+rb(r.status)+'<span style="font-size:12px;color:#94a3b8">'+(r.date||"")+'</span></div>'
+    +'<div style="font-size:13px;font-weight:600;margin-bottom:4px">'+esc(r.pickup||"—")+' → '+esc(r.dropoff||"—")+'</div>'
+    +'<div style="font-size:12px;color:#94a3b8">🚗 '+esc(r.driverName||"Driver TBA")+(r.plate?" · "+esc(r.plate):"")+'</div>'
+    +(r.fare?'<div style="font-size:15px;font-weight:700;color:#22c55e;margin-top:6px">'+fmt(r.fare)+'</div>':"")
+    +'</div>').join("")
+  );
 }
-
-
-
-// ── Toast notification system (no more alert() popups) ──
-function toast(msg, type='error'){
-  const existing=document.getElementById('_toast');
-  if(existing)existing.remove();
-  const t=document.createElement('div');
-  t.id='_toast';
-  const bg=type==='ok'?'rgba(34,197,94,.95)':type==='warn'?'rgba(245,158,11,.95)':'rgba(239,68,68,.92)';
-  t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:'+bg+';color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:9999;max-width:90vw;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.5);font-family:inherit;transition:opacity .3s';
-  t.textContent=msg;
-  document.body.appendChild(t);
-  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},3500);
-}
-
-// ── Debounced render to prevent blink from simultaneous listener fires ──
-let _renderPending=false;
-function render(){
-  if(_renderPending)return;
-  _renderPending=true;
-  requestAnimationFrame(()=>{_renderPending=false;_doRender();});
-}
-function _doRender(){
-  const app=document.getElementById("app");
-  if(!app)return;
-  try{if(!app)return;
-  if(S.user===null){app.innerHTML=rLogin();return;}
-  if(!S.user||!S.profile){app.innerHTML='<div class="sp">'+LP(48)+'<div style="width:32px;height:32px;border:3px solid var(--mc);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-top:8px"></div><p style="margin-top:10px">Loading ApartBook Pro…</p></div>';return;}
-  if(isCustomer()){
-    app.innerHTML=rCustHeader()+'<div class="main">'+rCustomerPortal()+'</div><a class="waf" href="https://wa.me/'+SUPPORT_WA+'" target="_blank">💬</a>';
-    return;
-  }
-  const ip=S.mode==="property";
-  const PV={Dashboard:rPropDash,Properties:rProperties,"New Booking":rNewBooking,Bookings:rBookings,Customers:rCustomers,Calendar:rCalendar,Reports:rPropRep,Staff:rStaff,Audit:rAudit};
-  const TV={Dashboard:isDrv()?rDriverDash:rTransDash,"New Ride":rNewRide,"Live Map":rLiveMap,Drivers:rDrivers,Rides:rRides,Reports:rTransRep,Settings:rSettings,Staff:rStaff,Audit:rAudit};
-  const views=ip?PV:TV;
-  app.innerHTML=rHeader()+'<div class="main">'+(views[S.tab]||views.Dashboard)()+'</div>'+(S.sel&&!S.delId?rModal():"")+(S.delId?rDelConfirm():"")+'<a class="waf" href="https://wa.me/'+SUPPORT_WA+'" target="_blank" title="Chat with us on WhatsApp">💬</a>';
-  if(S.tab==="Live Map")setTimeout(()=>initMap(),80);
-  }catch(e){console.error("Render error:",e);if(app)app.innerHTML='<div class="sp" style="color:#ef4444;gap:10px"><div style="font-size:32px">⚠️</div><div style="font-size:14px;font-weight:600">Something went wrong</div><div style="font-size:12px;color:#94a3b8;max-width:300px;text-align:center">'+(e.message||"Unknown error")+'</div><button onclick="location.reload()" style="margin-top:10px;padding:10px 20px;background:var(--mc);border:none;border-radius:9px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit">Reload App</button></div>';}
-}
-
-// ── BOOT ──
-auth.onAuthStateChanged(user=>{
-  S.user=user||null;
-  if(user){loadProfile();loadPricing();}
-  else{
-    S.profile=null;S.rides=[];S.drivers=[];S.bookings=[];S.props=[];
-    if(bkUnsub){bkUnsub();bkUnsub=null;}if(rdUnsub){rdUnsub();rdUnsub=null;}
-    auditUnsub=null;staffUnsub=null;destroyMap();document.body.className="";
-  }
-  render();
-});
-render();
-</script>
-<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
-</body>
-</html>
