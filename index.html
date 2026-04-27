@@ -163,8 +163,7 @@ tbody tr:hover td{background:rgba(255,255,255,.03);cursor:pointer}
 .step-badge{background:var(--mc);color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;font-family:'Bricolage Grotesque',sans-serif}
 
 /* ─── ANIMATIONS ─── */
-@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.main>*{animation:fadeUp .3s ease both}
+/* fadeUp removed — was causing blink on every render */
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin{animation:spin 1s linear infinite;display:inline-block}
 </style>
@@ -297,6 +296,7 @@ window.doLogin=async function(){
   }
 };
 window.doLogout=async function(){
+  _propsListening=false;_drvsListening=false;_pricingListening=false;
   try{await db.collection("audit_log").add({userId:S.user.uid,email:S.user.email,action:"LOGOUT",timestamp:TS(),device:navigator.userAgent.slice(0,100)});}catch(_){}
   stopGPS();auth.signOut();
 };
@@ -356,12 +356,18 @@ function loadProfile(){
     render();
   });
 }
+let _pricingListening=false;
 function loadPricing(){
+  if(_pricingListening)return;
+  _pricingListening=true;
   db.collection("settings").doc("pricing").onSnapshot(snap=>{
     S.pricing=snap.exists?{...DP,...snap.data()}:{...DP};render();
   });
 }
+let _propsListening=false;
 function loadProps(){
+  if(_propsListening)return;
+  _propsListening=true;
   db.collection("properties").orderBy("createdAt","asc").onSnapshot(async snap=>{
     const ps=snap.docs.map(d=>({...d.data(),_id:d.id}));
     if(ps.length===0){
@@ -395,7 +401,10 @@ function loadCustRides(){
   },()=>{});
 }
 
+let _drvsListening=false;
 function loadDrivers(){
+  if(_drvsListening)return;
+  _drvsListening=true;
   db.collection("drivers").onSnapshot(snap=>{S.drivers=snap.docs.map(d=>({...d.data(),_id:d.id}));render();},()=>{S.drivers=[];});
 }
 function loadRides(){
@@ -1143,6 +1152,7 @@ function rCustHeader(){
   return'<div class="hdr"><div class="hdr-top"><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'+LP(26)+'<span style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:13.5px;font-weight:800;background:linear-gradient(135deg,#c4b5fd,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">ApartBook Pro</span></div><div style="margin-left:auto;display:flex;align-items:center;gap:7px;flex-shrink:0"><div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:5px 10px;font-size:11px;color:#c4b5fd;font-weight:600">👤 '+esc(name)+'</div><button onclick="doLogout()" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;color:#ef4444;font-weight:600;font-family:inherit">Sign Out</button></div></div><div class="hdr-tabs">'+tabs.map(t=>'<button class="tb '+(S.custTab===t.n?"active":"")+'" onclick="setCustTab(\''+t.n+'\')">'+t.i+' '+t.n+'</button>').join("")+'</div></div>';
 }
 
+window.clearCustUnit=function(){S.custSelUnit=null;render();};
 window.setCustTab=function(t){S.custTab=t;S.custSelUnit=null;render();window.scrollTo({top:0,behavior:"smooth"});};
 
 function rCustomerPortal(){
@@ -1156,14 +1166,13 @@ function rCustomerPortal(){
 
 // ── BROWSE & BOOK UNIT ──
 function rCustBrowse(){
-  loadProps(); // ensure loaded
   const us=units();
   const t=tod();const oc=occ();const bk=bkd();
   const prop=curProp();
   if(S.custSelUnit){
     const u=S.custSelUnit;const c=pc(u.colorIdx||0);
     return'<div class="pg">Book Your Stay</div>'
-    +'<div style="margin-bottom:14px"><button class="btn" onclick="S.custSelUnit=null;render()">← Back to apartments</button></div>'
+    +'<div style="margin-bottom:14px"><button class="btn" onclick="clearCustUnit()">← Back to apartments</button></div>'
     +'<div style="background:linear-gradient(145deg,rgba(139,92,246,.12),rgba(139,92,246,.04));border:2px solid rgba(139,92,246,.3);border-radius:16px;padding:20px;margin-bottom:16px">'
     +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><div style="width:44px;height:44px;border-radius:10px;background:'+c.b+';border:2px solid '+c.c+'44;display:flex;align-items:center;justify-content:center;font-size:20px">🏠</div><div><div style="font-size:18px;font-weight:700;font-family:\'Bricolage Grotesque\',sans-serif;color:'+c.c+'">'+esc(u.name)+'</div><div style="font-size:12px;color:#94a3b8;margin-top:2px">'+(u.floor?u.floor+" floor · ":"")+u.beds+' bed'+(u.beds!==1?"s":"")+'</div></div><div style="margin-left:auto;text-align:right"><div style="font-size:22px;font-weight:800;font-family:\'Bricolage Grotesque\',sans-serif;color:#22c55e">'+fmt(u.price)+'</div><div style="font-size:11px;color:#94a3b8">per night</div></div></div></div>'
     +'<div class="card"><div class="ct">Your Details</div>'
@@ -1339,7 +1348,9 @@ function render(){
   requestAnimationFrame(()=>{_renderPending=false;_doRender();});
 }
 function _doRender(){
-  const app=document.getElementById("app");if(!app)return;
+  const app=document.getElementById("app");
+  if(!app)return;
+  try{if(!app)return;
   if(S.user===null){app.innerHTML=rLogin();return;}
   if(!S.user||!S.profile){app.innerHTML='<div class="sp">'+LP(48)+'<div style="width:32px;height:32px;border:3px solid var(--mc);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-top:8px"></div><p style="margin-top:10px">Loading ApartBook Pro…</p></div>';return;}
   if(isCustomer()){
@@ -1352,6 +1363,7 @@ function _doRender(){
   const views=ip?PV:TV;
   app.innerHTML=rHeader()+'<div class="main">'+(views[S.tab]||views.Dashboard)()+'</div>'+(S.sel&&!S.delId?rModal():"")+(S.delId?rDelConfirm():"")+'<a class="waf" href="https://wa.me/'+SUPPORT_WA+'" target="_blank" title="Chat with us on WhatsApp">💬</a>';
   if(S.tab==="Live Map")setTimeout(()=>initMap(),80);
+  }catch(e){console.error("Render error:",e);if(app)app.innerHTML='<div class="sp" style="color:#ef4444;gap:10px"><div style="font-size:32px">⚠️</div><div style="font-size:14px;font-weight:600">Something went wrong</div><div style="font-size:12px;color:#94a3b8;max-width:300px;text-align:center">'+(e.message||"Unknown error")+'</div><button onclick="location.reload()" style="margin-top:10px;padding:10px 20px;background:var(--mc);border:none;border-radius:9px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit">Reload App</button></div>';}
 }
 
 // ── BOOT ──
