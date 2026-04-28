@@ -1570,6 +1570,76 @@ function rCustTrack(){
 
 
 
+// ── RENDER ENGINE ──
+let _renderPending = false;
+function render() {
+  if (_renderPending) return;
+  _renderPending = true;
+  requestAnimationFrame(() => {
+    _renderPending = false;
+    _doRender();
+  });
+}
+
+function _doRender() {
+  const app = document.getElementById('app');
+  if (!app) return;
+  try {
+    // Not logged in → login screen
+    if (!S.user) {
+      app.innerHTML = rLogin();
+      return;
+    }
+    // Logged in but profile still loading → spinner
+    if (!S.profile) {
+      app.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:14px"><div class="sp"></div><div style="font-size:13px;color:#64748b">Loading profile…</div></div>';
+      return;
+    }
+    // Customer portal
+    if (isCustomer()) {
+      app.innerHTML = rCustHeader() + '<div class="main">' + rCustomerPortal() + '</div>';
+      return;
+    }
+    // Staff / manager / admin / driver
+    let html = rHeader();
+    if (S.mode === 'property') {
+      const t = S.tab;
+      if (t === 'Dashboard')    html += '<div class="main">' + rPropDash()    + '</div>';
+      else if (t === 'Properties')   html += '<div class="main">' + rProperties()  + '</div>';
+      else if (t === 'New Booking')  html += '<div class="main">' + rNewBooking()  + '</div>';
+      else if (t === 'Bookings')     html += '<div class="main">' + rBookings()    + '</div>';
+      else if (t === 'Customers')    html += '<div class="main">' + rCustomers()   + '</div>';
+      else if (t === 'Calendar')     html += '<div class="main">' + rCalendar()    + '</div>';
+      else if (t === 'Reports')      html += '<div class="main">' + rPropRep()     + '</div>';
+      else if (t === 'Staff')        html += '<div class="main">' + rStaff()       + '</div>';
+      else if (t === 'Audit')        html += '<div class="main">' + rAudit()       + '</div>';
+      else                           html += '<div class="main">' + rPropDash()    + '</div>';
+    } else {
+      // transport mode
+      const t = S.tab;
+      if (t === 'Dashboard')    html += '<div class="main">' + (isDrv() ? rDriverDash() : rTransDash()) + '</div>';
+      else if (t === 'New Ride')     html += '<div class="main">' + rNewRide()     + '</div>';
+      else if (t === 'Live Map')     html += rLiveMap();
+      else if (t === 'Drivers')      html += '<div class="main">' + rDrivers()     + '</div>';
+      else if (t === 'Rides')        html += '<div class="main">' + rRides()       + '</div>';
+      else if (t === 'Reports')      html += '<div class="main">' + rTransRep()    + '</div>';
+      else if (t === 'Settings')     html += '<div class="main">' + rSettings()    + '</div>';
+      else if (t === 'Staff')        html += '<div class="main">' + rStaff()       + '</div>';
+      else if (t === 'Audit')        html += '<div class="main">' + rAudit()       + '</div>';
+      else                           html += '<div class="main">' + (isDrv() ? rDriverDash() : rTransDash()) + '</div>';
+    }
+    html += rModal() + rDelConfirm();
+    app.innerHTML = html;
+  } catch(e) {
+    console.error('_doRender error:', e);
+    app.innerHTML = '<div style="padding:40px 20px;text-align:center"><div style="font-size:44px;margin-bottom:14px">⚠️</div>'
+      + '<div style="font-size:16px;font-weight:700;color:#ef4444;margin-bottom:8px">Something went wrong</div>'
+      + '<div style="font-size:12px;color:#64748b;background:#111122;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-family:monospace;text-align:left;word-break:break-all">' + esc(e.message) + '</div>'
+      + '<button onclick="location.reload()" style="background:#8b5cf6;color:#fff;border:none;border-radius:9px;padding:10px 22px;cursor:pointer;font-size:13px;font-weight:600">Reload App</button></div>';
+  }
+}
+
+
 // ── AUTH STATE BOOT SEQUENCE ──
 auth.onAuthStateChanged(user=>{
   if(user){
