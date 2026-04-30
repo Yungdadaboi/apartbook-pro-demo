@@ -130,6 +130,8 @@ tbody tr:hover td{background:rgba(255,255,255,.03);cursor:pointer}
 .bl:active{transform:translateY(0)}
 .blc{width:100%;padding:13px;font-size:14px;font-weight:700;border:none;border-radius:11px;background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;cursor:pointer;margin-top:10px;box-shadow:0 6px 28px rgba(14,165,233,.35);font-family:'Bricolage Grotesque',sans-serif;letter-spacing:.01em;transition:transform .15s,box-shadow .15s}
 .blc:hover{transform:translateY(-1px);box-shadow:0 8px 36px rgba(14,165,233,.45)}
+.dark-tile{filter:invert(1)hue-rotate(200deg)saturate(1.4)brightness(.88)}
+.track-card{background:linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.015));border:1px solid rgba(139,92,246,.25);border-radius:14px;padding:16px 18px;margin-bottom:12px}
 .sp{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:14px;background:var(--bg1)}
 .sp p{color:var(--txt3);font-size:14px}
 
@@ -479,17 +481,27 @@ function destroyMap(){
 function initMap(){
   const el=document.getElementById("live-map");if(!el)return;
   destroyMap();
-  leafM=L.map("live-map",{zoomControl:true}).setView([6.5244,3.3792],12);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap",maxZoom:19}).addTo(leafM);
-  setTimeout(()=>{if(leafM)leafM.invalidateSize();},200);
+  leafM=L.map("live-map",{zoomControl:false,attributionControl:false}).setView([6.5244,3.3792],12);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,className:"dark-tile"}).addTo(leafM);
+  L.control.zoom({position:"topright"}).addTo(leafM);
+  [150,350,600].forEach(d=>setTimeout(()=>{if(leafM)leafM.invalidateSize();},d));
   rtdbLsn=rtdb.ref("drivers_live").on("value",snap=>{
     Object.values(mMarkers).forEach(m=>{try{if(leafM)leafM.removeLayer(m);}catch(_){}});
     mMarkers={};
-    Object.entries(snap.val()||{}).forEach(([uid,loc])=>{
+    const entries=Object.entries(snap.val()||{});
+    const lls=[];
+    entries.forEach(([uid,loc])=>{
       if(!loc.lat||!loc.lng||!leafM)return;
-      const icon=L.divIcon({html:'<div style="background:#0ea5e9;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px rgba(14,165,233,.8)"></div>',iconSize:[14,14],className:""});
-      mMarkers[uid]=L.marker([loc.lat,loc.lng],{icon}).bindPopup("🚗 "+(loc.name||"Driver")).addTo(leafM);
+      const ride=S.rides.find(r=>r.driverId===uid&&r.status==="Active");
+      mMarkers[uid]=L.marker([loc.lat,loc.lng],{icon:gcIcon("🚗","#8b5cf6",44,!!ride),zIndexOffset:1000})
+        .bindPopup("<b>"+(loc.name||"Driver")+"</b>"+(ride?"<br>"+esc(ride.pickup)+" → "+esc(ride.dropoff):"<br>Available"))
+        .addTo(leafM);
+      lls.push([loc.lat,loc.lng]);
     });
+    if(lls.length===1)leafM.setView(lls[0],14);
+    else if(lls.length>1)leafM.fitBounds(lls,{padding:[40,40]});
+    const ct=document.getElementById("fleet-count");
+    if(ct)ct.textContent=entries.length+" driver"+(entries.length!==1?"s":"")+" live";
   });
   if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{if(leafM)leafM.setView([p.coords.latitude,p.coords.longitude],13);},()=>{});
 }
@@ -1090,9 +1102,46 @@ function rNewRide(){
 // ── LIVE MAP ──
 function rLiveMap(){
   const ar=S.rides.filter(r=>r.status==="Active");
-  return'<div class="pg">🗺️ Live Fleet Map</div><div class="card"><div style="font-size:13px;color:#64748b;margin-bottom:10px">Live driver locations update every few seconds automatically.</div><div id="live-map"></div><div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:#64748b"><span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#0ea5e9;margin-right:4px"></span>Live driver</span><span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;margin-right:4px"></span>Available</span></div></div>'
-  +'<div class="card"><div class="ct">🚗 Active Rides ('+ar.length+')</div>'+(ar.length===0?'<div class="em">No active rides. Drivers appear on map when rides are started.</div>':ar.map(r=>'<div class="li"><div style="flex-shrink:0">'+av(r.passenger,34,"#0d1f36","#0ea5e944","#38bdf8")+'</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">'+esc(r.passenger)+'</div><div style="font-size:11px;color:#64748b">📍 '+esc(r.pickup)+" → "+esc(r.dropoff)+'</div><div style="font-size:11px;color:#0ea5e9">🚙 '+esc(r.driverName||"—")+" · "+esc(r.plate||"—")+'</div></div><div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0"><button class="bg" style="font-size:10px;padding:5px 9px" onclick="completeRide(\''+r._id+'\')">✅ Done</button><button class="br" style="font-size:10px;padding:5px 9px" onclick="cancelRide(\''+r._id+'\')">❌ Cancel</button></div></div>').join(""))+'</div>'
-  +'<div class="card" style="border-color:var(--md)"><div class="ct">📍 Driver GPS Panel</div><div style="font-size:13px;color:#64748b;margin-bottom:12px;line-height:1.6">If you are a driver, tap below to start sharing your live location with the dispatcher.</div>'+(S.isTracking?'<div style="background:#0d2d1a;border:1px solid rgba(34,197,94,.4);border-radius:8px;padding:12px;margin-bottom:10px;display:flex;align-items:center;gap:10px"><div class="pu" style="width:11px;height:11px;background:#22c55e;border-radius:50%"></div><span style="color:#22c55e;font-weight:500">GPS Active — location is being shared</span></div><button class="br" style="width:100%;padding:11px" onclick="stopGPS();render()">⏹ Stop Sharing Location</button>':'<button class="bg" style="width:100%;padding:12px;font-size:14px;justify-content:center" onclick="startGPS(\'manual-\'+Date.now());render()">📍 Start Sharing My Location</button>')+'</div>';
+  setTimeout(()=>initMap(),250);
+  return'<div class="main">'
+  +'<div class="pg">🗺️ Live Fleet Map</div>'
+  +'<div style="border-radius:16px;overflow:hidden;margin-bottom:16px;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.6)">'
+  +'<div id="live-map" style="height:320px;background:#0a0a18;width:100%"></div>'
+  +'<div id="fleet-count" style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(10,10,24,.88);backdrop-filter:blur(8px);border:1px solid rgba(139,92,246,.4);border-radius:20px;padding:7px 18px;font-size:12px;color:#c4b5fd;white-space:nowrap;z-index:500">Connecting…</div>'
+  +'</div>'
+  +'<div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">🚗 Active Rides ('+ar.length+')</div>'
+  +(ar.length===0
+    ?'<div class="card"><div class="em">No active rides. Drivers appear on map when rides are started.</div></div>'
+    :ar.map(r=>'<div class="track-card">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+      +'<div style="font-size:14px;font-weight:700;color:#22c55e">🚗 '+esc(r.passenger)+'</div>'+rb(r.status)
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px">'
+      +'<div style="display:flex;gap:9px;align-items:center"><div style="width:11px;height:11px;border-radius:50%;background:#22c55e;flex-shrink:0;box-shadow:0 0 5px #22c55e66"></div><div style="font-size:12px;font-weight:500">'+esc(r.pickup||"—")+'</div></div>'
+      +'<div style="width:2px;height:14px;background:linear-gradient(#22c55e,#ef4444);margin-left:4px;border-radius:2px"></div>'
+      +'<div style="display:flex;gap:9px;align-items:center"><div style="width:11px;height:11px;border-radius:50%;background:#ef4444;flex-shrink:0;box-shadow:0 0 5px #ef444466"></div><div style="font-size:12px;font-weight:500">'+esc(r.dropoff||"—")+'</div></div>'
+      +'</div>'
+      +(r.driverName
+        ?'<div style="background:rgba(255,255,255,.05);border-radius:10px;padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;gap:10px;border:1px solid rgba(139,92,246,.15)">'
+          +av(r.driverName,36,"#110a2e","#8b5cf644","#c4b5fd")
+          +'<div><div style="font-size:13px;font-weight:700">'+esc(r.driverName)+'</div>'
+          +'<div style="font-size:11px;color:#8b5cf6;margin-top:1px">'+esc(r.vehicle||"")+'<strong style="margin-left:6px">'+esc(r.plate||"")+'</strong></div></div>'
+          +(r.driverPhone?'<button class="bw" style="margin-left:auto;width:auto;padding:8px 11px;margin-bottom:0;flex-shrink:0" onclick="window.open(\'https://wa.me/\'+wa(\''+(r.driverPhone||"")+'\'),\'_blank\')">💬</button>':"")
+          +'</div>'
+        :"")
+      +'<div style="display:flex;gap:8px">'
+      +'<button class="bg" style="flex:1;font-size:11px;padding:8px" onclick="completeRide(\''+r._id+'\')">✅ Complete</button>'
+      +'<button class="br" style="flex:1;font-size:11px;padding:8px" onclick="cancelRide(\''+r._id+'\')">❌ Cancel</button>'
+      +'</div></div>').join("")
+  )
+  +'<div class="card" style="border-color:var(--md);margin-top:4px">'
+  +'<div class="ct">📍 Driver GPS Panel</div>'
+  +'<div style="font-size:13px;color:#64748b;margin-bottom:12px;line-height:1.6">If you are a driver, tap below to start sharing your live location with the dispatcher.</div>'
+  +(S.isTracking
+    ?'<div style="background:#0d2d1a;border:1px solid rgba(34,197,94,.4);border-radius:8px;padding:12px;margin-bottom:10px;display:flex;align-items:center;gap:10px"><div class="pu" style="width:11px;height:11px;background:#22c55e;border-radius:50%"></div><span style="color:#22c55e;font-weight:500">GPS Active — location is being shared</span></div><button class="br" style="width:100%;padding:11px" onclick="stopGPS();render()">⏹ Stop Sharing Location</button>'
+    :'<button class="bg" style="width:100%;padding:12px;font-size:14px;justify-content:center" onclick="startGPS(\'manual-\'+Date.now());render()">📍 Start Sharing My Location</button>'
+  )
+  +'</div></div>';
 }
 
 // ── DRIVERS ──
@@ -1439,10 +1488,7 @@ async function initCustMap(cur){
   if(!custMap){
     custMap=L.map('cust-live-map',{zoomControl:false,attributionControl:false}).setView([6.5244,3.3792],13);
     // Try dark tiles, fall back to standard OSM if blocked
-    const darkTile=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19});
-    const osmTile=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19});
-    darkTile.addTo(custMap);
-    darkTile.on('tileerror',()=>{custMap.removeLayer(darkTile);osmTile.addTo(custMap);});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,className:'dark-tile'}).addTo(custMap);
     L.control.zoom({position:'topright'}).addTo(custMap);
   }
   // Multiple invalidateSize calls to handle async DOM rendering
@@ -1619,7 +1665,7 @@ function _doRender() {
       const t = S.tab;
       if (t === 'Dashboard')    html += '<div class="main">' + (isDrv() ? rDriverDash() : rTransDash()) + '</div>';
       else if (t === 'New Ride')     html += '<div class="main">' + rNewRide()     + '</div>';
-      else if (t === 'Live Map')     html += rLiveMap();
+      else if (t === 'Live Map')     html += rLiveMap(); // owns its .main
       else if (t === 'Drivers')      html += '<div class="main">' + rDrivers()     + '</div>';
       else if (t === 'Rides')        html += '<div class="main">' + rRides()       + '</div>';
       else if (t === 'Reports')      html += '<div class="main">' + rTransRep()    + '</div>';
